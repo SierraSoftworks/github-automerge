@@ -8,15 +8,6 @@ import { safeIndex } from "../utils/safeindex"
 
 type HandlerMap = { [kind in keyof WebhookEventMap]?: (context: Context, req: HttpRequest, payload: WebhookEventMap[kind]) => Promise<string> }
 
-/**
- * These are the Bot accounts which we trust to create PRs on which auto merge will be enabled.
- */
-const trustedAccounts = [
-    "dependabot[bot]",
-    "dependabot-preview[bot]",
-    "notheotherben"
-]
-
 setup().start()
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
@@ -130,6 +121,8 @@ async function onPing(context: Context, req: HttpRequest, payload: PingEvent): P
 }
 
 async function onPullRequest(context: Context, req: HttpRequest, payload: PullRequestEvent): Promise<string> {
+    const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')
+
     if (payload.action !== "opened" || !trustedAccounts.includes(payload.sender.login)) {
         telemetry.trackEvent({
             name: "Ignoring Pull Request",

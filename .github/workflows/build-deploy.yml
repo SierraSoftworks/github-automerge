@@ -29,9 +29,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: npm ci
-      - name: npm run build
-      - name: npm test
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
 
   deploy:
     name: Deploy

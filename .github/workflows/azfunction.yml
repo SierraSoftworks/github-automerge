@@ -13,8 +13,8 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: "."
   NODE_VERSION: "12.x"
+  NPM_CONFIG_PREFIX: ~/.npm-global
 
 jobs:
   test:
@@ -35,12 +35,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: build
-          path: |
-            dist
-            host.json
-            proxies.json
-            **/function.json
-            node_modules
+          path: dist
             
 
   deploy-staging:
@@ -59,18 +54,15 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build
-          path: package
 
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: npm install azure-functions-core-tools@3
+      - run: npm install -g azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge --slot staging
-        run: |
-          cd package/
-          npx func azure functionapp publish github-automerge --slot staging --javascript --no-build
+        run: func azure functionapp publish github-automerge --slot staging --javascript --no-build
   
   healthcheck-staging:
     needs: deploy-staging
@@ -103,18 +95,15 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build
-          path: package
 
       - uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: npm install azure-functions-core-tools@3
+      - run: npm install -g azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge
-        run: |
-          cd package/
-          npx func azure functionapp publish github-automerge --javascript --no-build
+        run: func azure functionapp publish github-automerge --javascript --no-build
   
   healthcheck-production:
     needs: deploy-production

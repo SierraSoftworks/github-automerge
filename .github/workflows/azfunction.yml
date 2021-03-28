@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build
+name: Azure Function
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: "."
-  NODE_VERSION: "14.x"
+  NODE_VERSION: "12.x"
 
 jobs:
   test:
@@ -56,11 +56,14 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: 'Login via Azure CLI'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy
         uses: Azure/functions-action@v1
-        id: fa
         with:
           app-name: "github-automerge"
           slot-name: "production"
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          publish-profile: ${{ secrets.AzureAppService_PublishProfile_c1b6c0f17901471bb721497b39dc1b24 }}

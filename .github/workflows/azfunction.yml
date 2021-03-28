@@ -34,7 +34,9 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: build
-          path: dist
+          path: |
+            dist
+            node_modules
             
 
   deploy-staging:
@@ -59,7 +61,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - run: sudo npm install -g azure-functions-core-tools@3 --unsafe-perm=true
-      
+
       - name: func azure functionapp publish github-automerge --slot staging
         run: func azure functionapp publish github-automerge --slot staging --javascript --no-build
   

@@ -62,7 +62,7 @@ jobs:
       - run: npm install -g azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge --slot staging
-        run: func azure functionapp publish github-automerge --slot staging --javascript --no-build
+        run: npx func azure functionapp publish github-automerge --slot staging --javascript --no-build
   
   healthcheck-staging:
     needs: deploy-staging
@@ -103,7 +103,7 @@ jobs:
       - run: npm install -g azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge
-        run: func azure functionapp publish github-automerge --javascript --no-build
+        run: npx func azure functionapp publish github-automerge --javascript --no-build
   
   healthcheck-production:
     needs: deploy-production

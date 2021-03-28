@@ -14,7 +14,6 @@ on:
 
 env:
   NODE_VERSION: "12.x"
-  NPM_CONFIG_PREFIX: ~/.npm-global
 
 jobs:
   test:
@@ -59,10 +58,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: npm install -g azure-functions-core-tools@3
+      - run: sudo npm install -g azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge --slot staging
-        run: $NPM_CONFIG_PREFIX/bin/func azure functionapp publish github-automerge --slot staging --javascript --no-build
+        run: func azure functionapp publish github-automerge --slot staging --javascript --no-build
   
   healthcheck-staging:
     needs: deploy-staging
@@ -100,10 +99,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: npm install -g azure-functions-core-tools@3
+      - run: sudo npm install -g azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge
-        run: $NPM_CONFIG_PREFIX/bin/func azure functionapp publish github-automerge --javascript --no-build
+        run: func azure functionapp publish github-automerge --javascript --no-build
   
   healthcheck-production:
     needs: deploy-production

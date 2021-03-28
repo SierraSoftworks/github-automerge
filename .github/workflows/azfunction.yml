@@ -58,8 +58,8 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: sudo npm install -g azure-functions-core-tools@3
-
+      - run: sudo npm install -g azure-functions-core-tools@3 --unsafe-perm=true
+      
       - name: func azure functionapp publish github-automerge --slot staging
         run: func azure functionapp publish github-automerge --slot staging --javascript --no-build
   
@@ -99,7 +99,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - run: sudo npm install -g azure-functions-core-tools@3
+      - run: sudo npm install -g azure-functions-core-tools@3 --unsafe-perm=true
 
       - name: func azure functionapp publish github-automerge
         run: func azure functionapp publish github-automerge --javascript --no-build

@@ -35,7 +35,13 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: build
-          path: dist
+          path: |
+            dist
+            host.json
+            proxies.json
+            **/function.json
+            node_modules
+            
 
   deploy-staging:
     runs-on: ubuntu-20.04
@@ -53,6 +59,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build
+          path: package
 
       - uses: azure/login@v1
         with:
@@ -61,7 +68,9 @@ jobs:
       - run: npm install azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge --slot staging
-        run: npx func azure functionapp publish github-automerge --slot staging --typescript
+        run: |
+          cd package/
+          npx func azure functionapp publish github-automerge --slot staging --javascript --no-build
   
   healthcheck-staging:
     needs: deploy-staging
@@ -94,6 +103,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build
+          path: package
 
       - uses: azure/login@v1
         with:
@@ -102,7 +112,9 @@ jobs:
       - run: npm install azure-functions-core-tools@3
 
       - name: func azure functionapp publish github-automerge
-        run: npx func azure functionapp publish github-automerge --typescript
+        run: |
+          cd package/
+          npx func azure functionapp publish github-automerge --javascript --no-build
   
   healthcheck-production:
     needs: deploy-production

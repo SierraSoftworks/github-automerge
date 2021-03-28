@@ -18,7 +18,6 @@ env:
 
 jobs:
   test:
-    name: Test
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout Code
@@ -39,7 +38,6 @@ jobs:
           path: dist
 
   deploy-staging:
-    name: Deploy
     runs-on: ubuntu-20.04
     needs:
       - test
@@ -60,13 +58,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy
-        uses: Azure/functions-action@v1
-        with:
-          app-name: "github-automerge"
-          slot-name: "staging"
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          respect-funcignore: true
+      - name: Install Azure Core Tools v3 for deployment
+        run: npm i -g azure-functions-core-tools@3 --unsafe-perm true
+
+      - run: func azure functionapp publish github-automerge --slot staging
   
   healthcheck-staging:
     needs: deploy-staging
@@ -82,7 +77,6 @@ jobs:
           follow-redirect: true
 
   deploy-production:
-    name: Deploy
     runs-on: ubuntu-20.04
     needs:
       - healthcheck-staging
@@ -105,12 +99,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy
-        uses: Azure/functions-action@v1
-        with:
-          app-name: "github-automerge"
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          respect-funcignore: true
+      - name: Install Azure Core Tools v3 for deployment
+        run: npm i -g azure-functions-core-tools@3 --unsafe-perm true
+
+      - run: func azure functionapp publish github-automerge
   
   healthcheck-production:
     needs: deploy-production

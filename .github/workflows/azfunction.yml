@@ -35,7 +35,7 @@ jobs:
     needs:
       - test
 
-    if: github.actor != "dependabot[bot]"
+    if: github.actor != 'dependabot[bot]'
 
     environment:
       name: Staging

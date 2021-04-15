@@ -12,7 +12,7 @@
   "devDependencies": {
     "@azure/functions": "^1.2.3",
     "@octokit/graphql": "^4.6.1",
-    "@octokit/webhooks": "^8.12.3",
+    "@octokit/webhooks": "^9.0.0",
     "@octokit/webhooks-definitions": "^3.67.0",
     "@types/jest": "^26.0.22",
     "@types/node": "^14.14.37",

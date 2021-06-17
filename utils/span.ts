@@ -2,6 +2,7 @@ import { Context, HttpRequest } from '@azure/functions'
 import * as beeline from 'honeycomb-beeline'
 import { defaultClient as telemetry, setup, startOperation, wrapWithCorrelationContext } from "applicationinsights"
 import { Timer } from "../utils/timer"
+import {URL} from "url"
 
 export function telemetrySetup() {
     beeline({
@@ -20,7 +21,7 @@ export function span(name?: string, other?: object) {
         const originalMethod = descriptor.value
         descriptor.value = <any>function (...args) {
             return beeline.withSpan({
-                task: name || propertyKey,
+                name: name || propertyKey,
                 ...(other || {})
             }, () => {
                 try {
@@ -41,7 +42,7 @@ export function asyncSpan(name?: string, other?: object) {
 
         descriptor.value = <any>function (...args) {
             return beeline.startAsyncSpan({
-                task: name || propertyKey,
+                name: name || propertyKey,
                 ...(other || {})
             }, async span => {
                 try {
@@ -68,13 +69,20 @@ export function trackException(err: Error, extraInfo?: Object) {
 }
 
 export async function handleHttpRequest(context: Context, req: HttpRequest, handleRequest: (context: Context, req: HttpRequest) => Promise<void>): Promise<void> {
-    const correlationContext = startOperation(context, req)
+    
+    const url = new URL(req.url)
+    
     const trace = beeline.startTrace({
-        task: `${req.method} ${req.url}`,
-        "request.path": req.url,
+        name: `${req.method} ${req.url}`,
+        "request.host": url.hostname,
+        "request.scheme": url.protocol,
+        "request.path": url.pathname,
         "request.method": req.method,
-        "request.query": req.query
+        "request.query": url.search,
+        "request.url": req.url
     })
+    
+    const correlationContext = startOperation(context, req)
 
     return wrapWithCorrelationContext(async () => {
         try {
@@ -86,7 +94,9 @@ export async function handleHttpRequest(context: Context, req: HttpRequest, hand
                 "response.status_code": context.res.status || (context.res.body ? 200 : 204)
             })
 
-            telemetry.trackRequest({
+            beeline.withSpan({
+                name: "application_insights.trackRequest"
+            }, () => telemetry.trackRequest({
                 id: correlationContext.operation.parentId,
                 name: `${context.req.method} ${context.req.url}`,
                 resultCode: context.res.status || (context.res.body ? 200 : 204),
@@ -96,12 +106,14 @@ export async function handleHttpRequest(context: Context, req: HttpRequest, hand
                 properties: {
                     ...context.res
                 }
-            })
+            }))
         }
         catch (e) {
             beeline.addTraceContext({ exception: e.toString() })
         } finally {
-            telemetry.flush()
+            beeline.withSpan({
+                name: "application_insights.flush",
+            }, () => telemetry.flush())
             beeline.finishTrace(trace);
         }
     }, correlationContext)()

@@ -9,6 +9,7 @@ import { graphql } from "@octokit/graphql"
 import { Timer } from "../utils/timer"
 import beeline = require("honeycomb-beeline");
 import { Handler } from "../utils/handler";
+import { RequestParameters } from "@octokit/graphql/dist-types/types";
 
 type HandlerMap = { [kind in keyof WebhookEventMap]?: (context: Context, req: HttpRequest, payload: WebhookEventMap[kind]) => Promise<string> }
 
@@ -85,7 +86,9 @@ class GitHubHandler extends Handler {
             return false
         }
 
-        const expectedSignature = generateSignature(secret, req.rawBody)
+        const expectedSignature = beeline.withSpan({
+            name: "github.generateSignature"
+        }, () => generateSignature(secret, req.rawBody))
         const actualSignature = req.headers["x-hub-signature-256"] || "No Signature"
 
         telemetry.trackTrace({
@@ -164,8 +167,7 @@ class GitHubHandler extends Handler {
 
     @asyncSpan('github.enableGitHubAutoMerge')
     private async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
-        const timer = new Timer()
-        const result = await graphql<{
+        const result = await this.callGraphQL<{
             enablePullRequestAutoMerge?: {
                 pullRequest?: {
                     autoMergeRequest?: {
@@ -177,6 +179,7 @@ class GitHubHandler extends Handler {
                 }
             }
         }>(
+            'enablePullRequestAutoMerge',
             `
             mutation EnableAutoMerge($pullRequest: ID!) {
                 enablePullRequestAutoMerge(input: {pullRequestId: $pullRequest}) {
@@ -197,38 +200,21 @@ class GitHubHandler extends Handler {
             }
         )
 
-        telemetry.trackDependency({
-            name: "GitHub GraphQL: EnableAutoMerge",
-            target: "github+graphql://enablePullRequestAutoMerge",
-            data: `$pullRequest = ${pr.node_id}`,
-            dependencyTypeName: "GRAPHQL",
-            duration: timer.elapsed,
-            resultCode: 200,
-            success: true,
-            properties: {
-                result: JSON.stringify(result)
-            }
-        })
-
         const autoMergeResult = result?.enablePullRequestAutoMerge?.pullRequest?.autoMergeRequest
-
-        beeline.addContext({
-            "response.body": autoMergeResult
-        })
 
         return !!autoMergeResult?.enabledAt
     }
 
     @asyncSpan('github.enableDependabotAutoMerge')
     private async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
-        const timer = new Timer()
-        const result = await graphql<{
+        const result = await this.callGraphQL<{
             addComment?: {
                 subject?: {
                     id?: string
                 }
             }
         }>(
+            'addComment',
             `
         mutation DependabotMergeComment($pullRequest: ID!, $comment: String!) {
             addComment(input: {
@@ -248,10 +234,33 @@ class GitHubHandler extends Handler {
             }
         )
 
+        return !result?.addComment?.subject?.id
+    }
+
+    @asyncSpan('github.graphql')
+    private async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
+        const requestParams = Object.assign({}, payload, { headers: null });
+
+        beeline.addContext({
+            name: `github.graphql.${operation}`,
+            "request.body": request,
+            "request.params": requestParams
+        })
+
+        const timer = new Timer()
+        const result = await graphql<T>(
+            request,
+            payload
+        )
+
+        beeline.addContext({
+            "response.body": result
+        })
+
         telemetry.trackDependency({
-            name: "GitHub GraphQL: DependabotMergeComment",
-            target: "github+graphql://addComment",
-            data: `$pullRequest = ${pr.node_id}, $comment = "@dependabot merge"`,
+            name: `GitHub GraphQL: ${operation}`,
+            target: `github+graphql://${operation}`,
+            data: JSON.stringify(requestParams),
             dependencyTypeName: "GRAPHQL",
             duration: timer.elapsed,
             resultCode: 200,
@@ -261,11 +270,7 @@ class GitHubHandler extends Handler {
             }
         })
 
-        beeline.addContext({
-            "response.body": result?.addComment
-        })
-
-        return !result?.addComment?.subject?.id
+        return result
     }
 }
 

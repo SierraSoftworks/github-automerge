@@ -25,7 +25,7 @@ export function span(name?: string, other?: object) {
                 ...(other || {})
             }, () => {
                 try {
-                    originalMethod.apply(this, args)
+                    return originalMethod.apply(this, args)
                 } catch (err) {
                     trackException(err)
                     throw err

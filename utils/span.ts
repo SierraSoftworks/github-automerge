@@ -27,7 +27,7 @@ export function span(name?: string, other?: object) {
                 try {
                     const result = originalMethod.apply(this, args)
 
-                    if (other['result'] === '$result')
+                    if (other && other['result'] === '$result')
                         beeline.addContext({
                             result
                         });
@@ -36,7 +36,7 @@ export function span(name?: string, other?: object) {
                 } catch (err) {
                     trackException(err)
 
-                    if (other['result'] === '$result')
+                    if (other && other['result'] === '$result')
                         beeline.addContext({
                             result: "<EXCEPTION>"
                         });
@@ -61,7 +61,7 @@ export function asyncSpan(name?: string, other?: object) {
                 try {
                     const result = await originalMethod.apply(this, args)
 
-                    if (other['result'] === '$result')
+                    if (other && other['result'] === '$result')
                         beeline.addContext({
                             result
                         });
@@ -70,7 +70,7 @@ export function asyncSpan(name?: string, other?: object) {
                 } catch (err) {
                     trackException(err)
 
-                    if (other['result'] === '$result')
+                    if (other && other['result'] === '$result')
                         beeline.addContext({
                             result: "<EXCEPTION>"
                         });

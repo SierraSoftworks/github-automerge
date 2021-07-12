@@ -20,12 +20,13 @@ export function span(name?: string, other?: object) {
     return function decorate<T extends (...args) => any>(target: Object, propertyKey?: string, descriptor?: TypedPropertyDescriptor<T>) {
         const originalMethod = descriptor.value
         descriptor.value = <any>function (...args) {
+            const self = this;
             return beeline.withSpan({
                 name: name || propertyKey,
                 ...(other || {})
             }, () => {
                 try {
-                    const result = originalMethod.apply(this, args)
+                    const result = originalMethod.apply(self, args)
 
                     if (other && other['result'] === '$result')
                         beeline.addContext({
@@ -54,12 +55,13 @@ export function asyncSpan(name?: string, other?: object) {
         const originalMethod = descriptor.value
 
         descriptor.value = <any>function (...args) {
+            const self = this;
             return beeline.startAsyncSpan({
                 name: name || propertyKey,
                 ...(other || {})
             }, async span => {
                 try {
-                    const result = await originalMethod.apply(this, args)
+                    const result = await originalMethod.apply(self, args)
 
                     if (other && other['result'] === '$result')
                         beeline.addContext({

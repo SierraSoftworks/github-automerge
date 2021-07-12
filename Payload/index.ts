@@ -23,9 +23,13 @@ class GitHubHandler extends Handler {
         pull_request: this.onPullRequest
     }
 
-    @asyncSpan('github.handle')
+    @asyncSpan('github.handle', { stage: "pre-start" })
     async handle(context: Context, req: HttpRequest) {
         const webhookEvent = req.headers["x-github-event"] || 'ping'
+
+        beeline.addContext({
+            stage: "telemetry-init"
+        })
 
         context.log(`Received GitHub webhook ${webhookEvent} event`)
         telemetry.trackEvent({
@@ -43,6 +47,10 @@ class GitHubHandler extends Handler {
         })
 
 
+        beeline.addContext({
+            stage: "validate-signature"
+        })
+
         if (!this.validatePayload(context, req)) {
             context.log.error("Received an invalid request signature, ignoring webhook.")
             context.res = {
@@ -54,6 +62,10 @@ class GitHubHandler extends Handler {
 
         context.log("Webhook event passed signature validation.")
 
+        beeline.addContext({
+            stage: "handler-lookup"
+        })
+
         const handler = this.handlerMap[webhookEvent]
         if (!handler) {
             context.log(`Got a ${webhookEvent} event, which we do not currently support.`)
@@ -63,18 +75,23 @@ class GitHubHandler extends Handler {
             return
         }
 
+        beeline.addContext({
+            stage: "handler-run"
+        })
+
         context.res = {
             // status: 200, /* Defaults to 200 */
             body: await handler(context, req, req.body)
         }
 
         beeline.addContext({
-            "response.body": context.res.body
+            "response.body": context.res.body,
+            stage: "complete"
         })
     }
 
 
-    @span('github.validatePayload')
+    @span('github.validatePayload', { result: '$result' })
     validatePayload(context: Context, req: HttpRequest): boolean {
         context.log("Verifying request payload hash")
 
@@ -116,13 +133,13 @@ class GitHubHandler extends Handler {
         return true
     }
 
-    @asyncSpan('github.on.ping')
+    @asyncSpan('github.on.ping', { result: '$result' })
     async onPing(context: Context, req: HttpRequest, payload: PingEvent): Promise<string> {
         context.log("Got ping request, responding with pong.")
         return "pong"
     }
 
-    @asyncSpan('github.on.pull_request')
+    @asyncSpan('github.on.pull_request', { result: '$result' })
     async onPullRequest(context: Context, req: HttpRequest, payload: PullRequestEvent): Promise<string> {
         const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')
 
@@ -165,7 +182,7 @@ class GitHubHandler extends Handler {
         }
     }
 
-    @asyncSpan('github.enableGitHubAutoMerge')
+    @asyncSpan('github.enableGitHubAutoMerge', { result: '$result' })
     private async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
         const result = await this.callGraphQL<{
             enablePullRequestAutoMerge?: {
@@ -205,7 +222,7 @@ class GitHubHandler extends Handler {
         return !!autoMergeResult?.enabledAt
     }
 
-    @asyncSpan('github.enableDependabotAutoMerge')
+    @asyncSpan('github.enableDependabotAutoMerge', { result: '$result' })
     private async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
         const result = await this.callGraphQL<{
             addComment?: {
@@ -237,7 +254,7 @@ class GitHubHandler extends Handler {
         return !result?.addComment?.subject?.id
     }
 
-    @asyncSpan('github.graphql')
+    @asyncSpan('github.graphql', { result: '$result' })
     private async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
         const requestParams = Object.assign({}, payload, { headers: null });
 

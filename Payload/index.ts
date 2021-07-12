@@ -170,7 +170,7 @@ class GitHubHandler extends Handler {
 
         context.log(`Enabling GitHub auto-merge behaviour on this PR`)
         try {
-            if (this.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            if (await this.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
                 return `Auto-merge enabled for PR.`
             else if (payload.sender.login.startsWith("dependabot") && await this.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
                 return "Auto-merge enabled for PR using '@dependabot merge'"

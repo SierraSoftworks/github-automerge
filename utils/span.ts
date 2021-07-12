@@ -2,7 +2,7 @@ import { Context, HttpRequest } from '@azure/functions'
 import * as beeline from 'honeycomb-beeline'
 import { defaultClient as telemetry, setup, startOperation, wrapWithCorrelationContext } from "applicationinsights"
 import { Timer } from "../utils/timer"
-import {URL} from "url"
+import { URL } from "url"
 
 export function telemetrySetup() {
     beeline({
@@ -76,7 +76,7 @@ export function asyncSpan(name?: string, other?: object) {
                         beeline.addContext({
                             result: "<EXCEPTION>"
                         });
-                        
+
                     throw err
                 } finally {
                     beeline.finishSpan(span)
@@ -89,7 +89,12 @@ export function asyncSpan(name?: string, other?: object) {
 }
 
 export function trackException(err: Error, extraInfo?: Object) {
-    beeline.addContext({ exception: err.toString(), ...(extraInfo || {}) })
+    beeline.addContext({
+        exception: err.toString(),
+        stackTrace: err?.stack,
+        ...(extraInfo || {})
+    })
+    
     telemetry.trackException({
         exception: err,
         properties: extraInfo
@@ -97,9 +102,9 @@ export function trackException(err: Error, extraInfo?: Object) {
 }
 
 export async function handleHttpRequest(context: Context, req: HttpRequest, handleRequest: (context: Context, req: HttpRequest) => Promise<void>): Promise<void> {
-    
+
     const url = new URL(req.url)
-    
+
     const trace = beeline.startTrace({
         name: `${req.method} ${req.url}`,
         "request.host": url.hostname,
@@ -109,7 +114,7 @@ export async function handleHttpRequest(context: Context, req: HttpRequest, hand
         "request.query": url.search,
         "request.url": req.url
     })
-    
+
     const correlationContext = startOperation(context, req)
 
     return wrapWithCorrelationContext(async () => {

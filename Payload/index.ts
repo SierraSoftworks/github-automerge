@@ -21,8 +21,6 @@ class GitHubHandler extends Handler {
         pull_request: this.onPullRequest
     }
 
-    githubClient = new GitHubClient()
-
     @asyncSpan('github.handle', { stage: "pre-start" })
     async handle(context: Context, req: HttpRequest) {
         const webhookEvent = req.headers["x-github-event"] || 'ping'
@@ -170,9 +168,9 @@ class GitHubHandler extends Handler {
 
         context.log(`Enabling GitHub auto-merge behaviour on this PR`)
         try {
-            if (await this.githubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            if (await GitHubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
                 return `Auto-merge enabled for PR.`
-            else if (payload.sender.login.startsWith("dependabot") && await this.githubClient.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            else if (payload.sender.login.startsWith("dependabot") && await GitHubClient.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
                 return "Auto-merge enabled for PR using '@dependabot merge'"
 
             return `Auto-merge could not be enabled for this PR.`

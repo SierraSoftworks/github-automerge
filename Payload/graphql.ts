@@ -8,7 +8,7 @@ import beeline = require("honeycomb-beeline");
 
 export class GitHubClient {
     @asyncSpan('github.enableGitHubAutoMerge', { result: '$result' })
-    async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
+    static async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
         const result = await this.callGraphQL<{
             enablePullRequestAutoMerge?: {
                 pullRequest?: {
@@ -48,7 +48,7 @@ export class GitHubClient {
     }
 
     @asyncSpan('github.enableDependabotAutoMerge', { result: '$result' })
-    async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
+    static async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
         const result = await this.callGraphQL<{
             addComment?: {
                 subject?: {
@@ -80,7 +80,7 @@ export class GitHubClient {
     }
 
     @asyncSpan('github.graphql', { result: '$result' })
-    private async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
+    private static async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
         const requestParams = Object.assign({}, payload, { headers: null });
 
         beeline.addContext({

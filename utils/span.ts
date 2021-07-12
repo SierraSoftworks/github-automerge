@@ -55,13 +55,12 @@ export function asyncSpan(name?: string, other?: object) {
         const originalMethod = descriptor.value
 
         descriptor.value = <any>function (...args) {
-            const self = this;
             return beeline.startAsyncSpan({
                 name: name || propertyKey,
                 ...(other || {})
             }, async span => {
                 try {
-                    const result = await originalMethod.apply(self, args)
+                    const result = await originalMethod.apply(this, args)
 
                     if (other && other['result'] === '$result')
                         beeline.addContext({
@@ -94,7 +93,7 @@ export function trackException(err: Error, extraInfo?: Object) {
         stackTrace: err?.stack,
         ...(extraInfo || {})
     })
-    
+
     telemetry.trackException({
         exception: err,
         properties: extraInfo

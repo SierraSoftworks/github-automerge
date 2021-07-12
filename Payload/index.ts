@@ -2,14 +2,12 @@ import { asyncSpan, span, telemetrySetup, trackException } from "../utils/span";
 telemetrySetup()
 
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-import { defaultClient as telemetry, setup, DistributedTracingModes, startOperation, wrapWithCorrelationContext, getCorrelationContext } from "applicationinsights"
+import { defaultClient as telemetry } from "applicationinsights"
 import { WebhookEventMap, PingEvent, PullRequestEvent, PullRequest } from "@octokit/webhooks-definitions/schema"
 import { generateSignature } from "../utils/github"
-import { graphql } from "@octokit/graphql"
-import { Timer } from "../utils/timer"
 import beeline = require("honeycomb-beeline");
 import { Handler } from "../utils/handler";
-import { RequestParameters } from "@octokit/graphql/dist-types/types";
+import { GitHubClient } from "./graphql";
 
 type HandlerMap = { [kind in keyof WebhookEventMap]?: (context: Context, req: HttpRequest, payload: WebhookEventMap[kind]) => Promise<string> }
 
@@ -22,6 +20,8 @@ class GitHubHandler extends Handler {
         ping: this.onPing,
         pull_request: this.onPullRequest
     }
+
+    githubClient = new GitHubClient()
 
     @asyncSpan('github.handle', { stage: "pre-start" })
     async handle(context: Context, req: HttpRequest) {
@@ -170,9 +170,9 @@ class GitHubHandler extends Handler {
 
         context.log(`Enabling GitHub auto-merge behaviour on this PR`)
         try {
-            if (await this.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            if (await this.githubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
                 return `Auto-merge enabled for PR.`
-            else if (payload.sender.login.startsWith("dependabot") && await this.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            else if (payload.sender.login.startsWith("dependabot") && await this.githubClient.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
                 return "Auto-merge enabled for PR using '@dependabot merge'"
 
             return `Auto-merge could not be enabled for this PR.`
@@ -180,114 +180,6 @@ class GitHubHandler extends Handler {
             trackException(error)
             return `Auto-merge could not be enabled for this PR.`
         }
-    }
-
-    @asyncSpan('github.enableGitHubAutoMerge', { result: '$result' })
-    private async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
-        const result = await this.callGraphQL<{
-            enablePullRequestAutoMerge?: {
-                pullRequest?: {
-                    autoMergeRequest?: {
-                        enabledAt?: string,
-                        enabledBy?: {
-                            login?: string
-                        }
-                    }
-                }
-            }
-        }>(
-            'enablePullRequestAutoMerge',
-            `
-            mutation EnableAutoMerge($pullRequest: ID!) {
-                enablePullRequestAutoMerge(input: {pullRequestId: $pullRequest}) {
-                    pullRequest {
-                        autoMergeRequest {
-                            enabledAt,
-                            enabledBy { login }
-                        }
-                    }
-                }
-            }
-            `,
-            {
-                pullRequest: pr.node_id,
-                headers: {
-                    authorization: `token ${accessToken}`
-                }
-            }
-        )
-
-        const autoMergeResult = result?.enablePullRequestAutoMerge?.pullRequest?.autoMergeRequest
-
-        return !!autoMergeResult?.enabledAt
-    }
-
-    @asyncSpan('github.enableDependabotAutoMerge', { result: '$result' })
-    private async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
-        const result = await this.callGraphQL<{
-            addComment?: {
-                subject?: {
-                    id?: string
-                }
-            }
-        }>(
-            'addComment',
-            `
-        mutation DependabotMergeComment($pullRequest: ID!, $comment: String!) {
-            addComment(input: {
-                subjectId: $pullRequest,
-                body: $comment
-            }) {
-                subject { id }
-            }
-        }
-        `,
-            {
-                pullRequest: pr.node_id,
-                comment: "@dependabot merge",
-                headers: {
-                    authorization: `token ${accessToken}`
-                }
-            }
-        )
-
-        return !result?.addComment?.subject?.id
-    }
-
-    @asyncSpan('github.graphql', { result: '$result' })
-    private async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
-        const requestParams = Object.assign({}, payload, { headers: null });
-
-        beeline.addContext({
-            name: `github.graphql.${operation}`,
-            "request.body": request,
-            "request.params": requestParams
-        })
-
-        const timer = new Timer()
-        const result = await graphql<T>(
-            request,
-            payload
-        )
-
-        beeline.addContext({
-            "response.body": result
-        })
-
-        telemetry.trackDependency({
-            name: `GitHub GraphQL: ${operation}`,
-            target: `github+graphql://${operation}`,
-            data: JSON.stringify(requestParams),
-            dependencyTypeName: "GRAPHQL",
-            duration: timer.elapsed,
-            resultCode: 200,
-            success: true,
-            properties: {
-                result: JSON.stringify(result)
-            }
-        })
-
-        return result
     }
 }
 

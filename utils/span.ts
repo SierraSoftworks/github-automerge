@@ -111,7 +111,10 @@ export async function handleHttpRequest(context: Context, req: HttpRequest, hand
         "request.path": url.pathname,
         "request.method": req.method,
         "request.query": url.search,
-        "request.url": req.url
+        "request.url": req.url,
+        "request.client-ip": req.headers['client-ip'],
+        'request.user-agent': req.headers['user-agent'],
+        'az.function': req.headers['x-site-deployment-id'],
     })
 
     const correlationContext = startOperation(context, req)

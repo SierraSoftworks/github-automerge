@@ -81,7 +81,7 @@ export class GitHubClient {
                 }
             )
 
-            return !result?.addComment?.subject?.id
+            return !!result?.addComment?.subject?.id
         } catch(err) {
             trackException(err)
         }

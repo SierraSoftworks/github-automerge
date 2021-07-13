@@ -39,9 +39,12 @@ class GitHubHandler extends Handler {
         })
 
         beeline.addContext({
+            
+            "request.host": req.headers['host'],
             "request.headers": req.headers,
             "request.body": req.body,
-            "github.event": webhookEvent
+            "github.event": webhookEvent,
+            'github.delivery': req.headers['x-github-delivery']
         })
 
 

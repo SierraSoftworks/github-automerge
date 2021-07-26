@@ -22,6 +22,6 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "honeycomb-beeline": "^2.7.3"
+    "honeycomb-beeline": "^2.7.4"
   }
 }

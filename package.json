@@ -14,7 +14,7 @@
     "@octokit/graphql": "^4.8.0",
     "@octokit/webhooks": "^9.15.0",
     "@octokit/webhooks-definitions": "^3.67.0",
-    "@types/jest": "^27.0.1",
+    "@types/jest": "^27.0.2",
     "@types/node": "^16.9.4",
     "applicationinsights": "^2.1.7",
     "jest": "^27.2.1",

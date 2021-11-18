@@ -19,7 +19,7 @@
     "applicationinsights": "^2.1.9",
     "jest": "^27.3.1",
     "ts-jest": "^27.0.7",
-    "typescript": "^4.4.4"
+    "typescript": "^4.5.2"
   },
   "dependencies": {
     "honeycomb-beeline": "^3.0.0"

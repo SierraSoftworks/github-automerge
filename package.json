@@ -17,7 +17,7 @@
     "@types/jest": "^27.0.3",
     "@types/node": "^16.11.11",
     "applicationinsights": "^2.1.9",
-    "jest": "^27.4.0",
+    "jest": "^27.4.2",
     "ts-jest": "^27.0.7",
     "typescript": "^4.5.2"
   },

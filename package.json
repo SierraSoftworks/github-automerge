@@ -15,7 +15,7 @@
     "@octokit/webhooks": "^9.20.0",
     "@octokit/webhooks-definitions": "^3.67.0",
     "@types/jest": "^27.0.3",
-    "@types/node": "^16.11.10",
+    "@types/node": "^16.11.11",
     "applicationinsights": "^2.1.9",
     "jest": "^27.4.0",
     "ts-jest": "^27.0.7",

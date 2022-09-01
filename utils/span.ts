@@ -1,6 +1,8 @@
 import { Context, HttpRequest } from '@azure/functions'
 
 import {NodeSDK} from '@opentelemetry/sdk-node'
+import { Resource } from "@opentelemetry/resources";
+import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-node'
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-proto'
 import {Attributes, Span, trace, context as otelcontext} from '@opentelemetry/api'
@@ -18,6 +20,10 @@ const sdk = new NodeSDK({
     traceExporter,
     instrumentations: [getNodeAutoInstrumentations()],
     serviceName: "github-automerge",
+    autoDetectResources: true,
+    resource: new Resource({
+        [SemanticResourceAttributes.SERVICE_NAME]: "github-automerge",
+    })
 });
 
 sdk.start();

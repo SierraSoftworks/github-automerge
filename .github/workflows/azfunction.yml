@@ -13,7 +13,10 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: "12.x"
+  NODE_VERSION: "14.x"
+
+permissions:
+  id-token: write
 
 jobs:
   test:
@@ -53,9 +56,11 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - uses: azure/login@v1.4.5
+      - uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          tenant-id: a26571f1-22b3-4756-ac7b-39ca684fab48
+          subscription-id: 108b3ddb-53fb-4344-80b2-d6c151912be6
+          client-id: 9153565b-2895-414b-8f22-f475b87befb7
 
       - run: sudo npm install -g azure-functions-core-tools@3 --unsafe-perm=true
 
@@ -100,7 +105,9 @@ jobs:
 
       - uses: azure/login@v1.4.5
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          tenant-id: a26571f1-22b3-4756-ac7b-39ca684fab48
+          subscription-id: 108b3ddb-53fb-4344-80b2-d6c151912be6
+          client-id: 5d3f7698-1403-4c57-a377-1ea9dda502dc
 
       - run: sudo npm install -g azure-functions-core-tools@3 --unsafe-perm=true
 

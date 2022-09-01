@@ -1,5 +1,5 @@
-import {span, asyncSpan} from "../../utils/span"
-import * as beeline from 'honeycomb-beeline'
+import { Span } from "@opentelemetry/api"
+import {span, asyncSpan, tracer} from "../../utils/span"
 
 class MockClass
 {
@@ -26,19 +26,14 @@ class MockClass
     }
 }
 
-beeline({
-    sampleRate: 0,
-    writeKey: 'test'
-})
-
-let trace: beeline.Span
+let trace: Span
 
 beforeEach(() => {
-    trace = beeline.startTrace()
+    trace = tracer.startSpan("test")
 })
 
 afterEach(() => {
-    beeline.finishTrace(trace)
+    trace.end()
 })
 
 test("@span", () => {

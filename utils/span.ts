@@ -10,10 +10,11 @@ import {Attributes, Span, trace, context as otelcontext} from '@opentelemetry/ap
 import { URL } from "url"
 
 const traceExporter = new OTLPTraceExporter({
-    url: "https://api.honeycomb.io",
+    url: "https://api.honeycomb.io:443/v1/traces",
     headers: {
         "x-honeycomb-team": process.env.HONEYCOMB_KEY
     },
+    timeoutMillis: 500,
 });
 
 const sdk = new NodeSDK({
@@ -23,7 +24,7 @@ const sdk = new NodeSDK({
     autoDetectResources: true,
     resource: new Resource({
         [SemanticResourceAttributes.SERVICE_NAME]: "github-automerge",
-    })
+    }),
 });
 
 sdk.start();
@@ -81,7 +82,6 @@ export function asyncSpan(name?: string, other?: Attributes) {
 }
 
 export async function handleHttpRequest(context: Context, req: HttpRequest, handleRequest: (context: Context, req: HttpRequest) => Promise<void>): Promise<void> {
-
     const url = new URL(req.url)
 
     return tracer.startActiveSpan(

@@ -1,6 +1,4 @@
-import { asyncSpan, telemetrySetup } from "../utils/span";
-telemetrySetup()
-
+import { asyncSpan } from "../utils/span";
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
 import { Handler } from "../utils/handler";
 
@@ -17,6 +15,5 @@ class HealthHandler extends Handler {
         }
     }
 }
-
 
 export default httpTrigger;

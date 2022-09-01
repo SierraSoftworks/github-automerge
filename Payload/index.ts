@@ -1,6 +1,4 @@
-import { asyncSpan, currentSpan, span, telemetrySetup, wrap } from "../utils/span";
-telemetrySetup()
-
+import { asyncSpan, currentSpan, span, wrap } from "../utils/span";
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
 import { WebhookEventMap, PingEvent, PullRequestEvent, PullRequest } from "@octokit/webhooks-definitions/schema"
 import { generateSignature } from "../utils/github"

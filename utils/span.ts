@@ -7,22 +7,20 @@ import {Attributes, Span, trace, context as otelcontext} from '@opentelemetry/ap
 
 import { URL } from "url"
 
-export function telemetrySetup() {
-    const traceExporter = new OTLPTraceExporter({
-        url: "https://api.honeycomb.io",
-        headers: {
-            "x-honeycomb-team": process.env.HONEYCOMB_KEY
-        }
-    });
+const traceExporter = new OTLPTraceExporter({
+    url: "https://api.honeycomb.io",
+    headers: {
+        "x-honeycomb-team": process.env.HONEYCOMB_KEY
+    },
+});
 
-    const sdk = new NodeSDK({
-        traceExporter,
-        instrumentations: [getNodeAutoInstrumentations()],
-        serviceName: "github-automerge",
-    });
+const sdk = new NodeSDK({
+    traceExporter,
+    instrumentations: [getNodeAutoInstrumentations()],
+    serviceName: "github-automerge",
+});
 
-    sdk.start();
-}
+sdk.start();
 
 export const tracer = trace.getTracer("github-automerge")
 

@@ -1,155 +1,111 @@
 import { Context, HttpRequest } from '@azure/functions'
-import * as beeline from 'honeycomb-beeline'
-import { defaultClient as telemetry, setup, startOperation, wrapWithCorrelationContext } from "applicationinsights"
+
+import {NodeSDK} from '@opentelemetry/sdk-node'
+import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-node'
+import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-proto'
+import {Attributes, Span, trace, context as otelcontext} from '@opentelemetry/api'
+
 import { Timer } from "../utils/timer"
 import { URL } from "url"
 
 export function telemetrySetup() {
-    beeline({
-        writeKey: process.env.HONEYCOMB_KEY,
-        dataset: 'github-automerge.sierrasoftworks.com',
-        serviceName: 'github-automerge',
-        httpTraceParserHook: beeline.w3c.httpTraceParserHook,
-        httpTracePropagationHook: beeline.w3c.httpTracePropagationHook
+    const traceExporter = new OTLPTraceExporter({
+        url: "https://api.honeycomb.io",
+        headers: {
+            "x-honeycomb-team": process.env.HONEYCOMB_KEY
+        }
     });
 
-    setup().start()
+    const sdk = new NodeSDK({
+        traceExporter,
+        instrumentations: [getNodeAutoInstrumentations()],
+        serviceName: "github-automerge",
+    });
+
+    sdk.start();
 }
 
-export function span(name?: string, other?: object) {
+export const tracer = trace.getTracer("github-automerge")
+
+export function currentSpan(): Span {
+    return trace.getSpan(otelcontext.active())
+}
+
+export function wrap<T>(name: string, attributes: Attributes, fn: () => T): T {
+    return tracer.startActiveSpan(name, { attributes }, span => {
+        try {
+            return fn();
+        } catch (err) {
+            span.recordException(err)
+        } finally {
+            span.end()
+        }
+    })
+}
+
+export function wrapAsync<T>(name: string, attributes: Attributes, fn: () => Promise<T>): Promise<T> {
+    return tracer.startActiveSpan(name, { attributes }, async span => {
+        try {
+            return await fn();
+        } catch (err) {
+            span.recordException(err)
+        } finally {
+            span.end()
+        }
+    })
+}
+
+export function span(name?: string, other?: Attributes) {
     return function decorate<T extends (...args) => any>(target: Object, propertyKey?: string, descriptor?: TypedPropertyDescriptor<T>) {
         const originalMethod = descriptor.value
         descriptor.value = <any>function (...args) {
-            const self = this;
-            return beeline.withSpan({
-                name: name || propertyKey,
-                ...(other || {})
-            }, () => {
-                try {
-                    const result = originalMethod.apply(self, args)
-
-                    if (other && other['result'] === '$result')
-                        beeline.addContext({
-                            result
-                        });
-
-                    return result;
-                } catch (err) {
-                    trackException(err)
-
-                    if (other && other['result'] === '$result')
-                        beeline.addContext({
-                            result: "<EXCEPTION>"
-                        });
-
-                    throw err
-                }
-            })
+            return wrap(name, other, () => originalMethod.apply(this, args))
         }
         return descriptor
     }
 }
 
-export function asyncSpan(name?: string, other?: object) {
+export function asyncSpan(name?: string, other?: Attributes) {
     return function decorate<T extends (...args) => any>(target: Object, propertyKey?: string, descriptor?: TypedPropertyDescriptor<T>) {
         const originalMethod = descriptor.value
 
         descriptor.value = <any>function (...args) {
-            return beeline.startAsyncSpan({
-                name: name || propertyKey,
-                ...(other || {})
-            }, async span => {
-                try {
-                    const result = await originalMethod.apply(this, args)
-
-                    if (other && other['result'] === '$result')
-                        beeline.addContext({
-                            result
-                        });
-
-                    return result;
-                } catch (err) {
-                    trackException(err)
-
-                    if (other && other['result'] === '$result')
-                        beeline.addContext({
-                            result: "<EXCEPTION>"
-                        });
-
-                    throw err
-                } finally {
-                    beeline.finishSpan(span)
-                }
-            })
+            return wrapAsync(name, other, () => originalMethod.apply(this, args))
         }
 
         return descriptor
     }
-}
-
-export function trackException(err: Error, extraInfo?: Object) {
-    beeline.addContext({
-        exception: err.toString(),
-        stackTrace: err?.stack,
-        ...(extraInfo || {})
-    })
-
-    telemetry.trackException({
-        exception: err,
-        properties: extraInfo
-    })
 }
 
 export async function handleHttpRequest(context: Context, req: HttpRequest, handleRequest: (context: Context, req: HttpRequest) => Promise<void>): Promise<void> {
 
     const url = new URL(req.url)
 
-    const trace = beeline.startTrace({
-        name: `${req.method} ${req.url}`,
-        "request.host": url.hostname,
-        "request.scheme": url.protocol,
-        "request.path": url.pathname,
-        "request.method": req.method,
-        "request.query": url.search,
-        "request.url": req.url,
-        "request.client-ip": req.headers['client-ip'],
-        'request.user-agent': req.headers['user-agent'],
-        'az.function': req.headers['x-site-deployment-id'],
-    })
+    return tracer.startActiveSpan(
+        `${req.method} ${req.url}`,
+        {
+            attributes: {
+                "request.host": url.hostname,
+                "request.scheme": url.protocol,
+                "request.path": url.pathname,
+                "request.method": req.method,
+                "request.query": url.search,
+                "request.url": req.url,
+                "request.client-ip": req.headers['client-ip'],
+                'request.user-agent': req.headers['user-agent'],
+                'az.function': req.headers['x-site-deployment-id'],
+            }
+        },
+        async span => {
+            try {
+                await handleRequest(context, req)
 
-    const correlationContext = startOperation(context, req)
-
-    return wrapWithCorrelationContext(async () => {
-        try {
-            const timer = new Timer()
-
-            await handleRequest(context, req)
-
-            beeline.addTraceContext({
-                "response.status_code": context.res.status || (context.res.body ? 200 : 204)
-            })
-
-            beeline.withSpan({
-                name: "application_insights.trackRequest"
-            }, () => telemetry.trackRequest({
-                id: correlationContext.operation.parentId,
-                name: `${context.req.method} ${context.req.url}`,
-                resultCode: context.res.status || (context.res.body ? 200 : 204),
-                success: true,
-                url: req.url,
-                duration: timer.elapsed,
-                properties: {
-                    ...context.res
-                }
-            }))
+                span.setAttribute('response.status_code', context.res.status || (context.res.body ? 200 : 204))
+            } catch (err) {
+                span.recordException(err)
+            } finally {
+                span.end()
+            }
         }
-        catch (e) {
-            beeline.addTraceContext({ exception: e.toString() })
-        } finally {
-            beeline.withSpan({
-                name: "application_insights.flush",
-            }, () => telemetry.flush())
-            beeline.finishTrace(trace);
-        }
-    }, correlationContext)()
+    )
 }

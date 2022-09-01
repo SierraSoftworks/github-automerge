@@ -1,13 +1,12 @@
-import { asyncSpan, span, telemetrySetup, trackException } from "../utils/span";
+import { asyncSpan, currentSpan, span, telemetrySetup, wrap } from "../utils/span";
 telemetrySetup()
 
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
-import { defaultClient as telemetry } from "applicationinsights"
 import { WebhookEventMap, PingEvent, PullRequestEvent, PullRequest } from "@octokit/webhooks-definitions/schema"
 import { generateSignature } from "../utils/github"
-import beeline = require("honeycomb-beeline");
 import { Handler } from "../utils/handler";
 import { GitHubClient } from "./graphql";
+
 
 type HandlerMap = { [kind in keyof WebhookEventMap]?: (context: Context, req: HttpRequest, payload: WebhookEventMap[kind]) => Promise<string> }
 
@@ -25,32 +24,28 @@ class GitHubHandler extends Handler {
     async handle(context: Context, req: HttpRequest) {
         const webhookEvent = req.headers["x-github-event"] || 'ping'
 
-        beeline.addContext({
-            stage: "telemetry-init"
-        })
+        const span = currentSpan()
+        span.setAttribute('stage', "initialize")
 
         context.log(`Received GitHub webhook ${webhookEvent} event`)
-        telemetry.trackEvent({
-            name: "GitHub Webhook Event",
-            properties: {
-                headers: req.headers,
+        span.addEvent(
+            "GitHub Webhook Event",
+            {
+                headers: JSON.stringify(req.headers),
                 body: req.body
             }
-        })
+        )
 
-        beeline.addContext({
-            
+        span.setAttributes({
             "request.host": req.headers['host'],
-            "request.headers": req.headers,
+            "request.headers": JSON.stringify(req.headers),
             "request.body": req.body,
             "github.event": webhookEvent,
             'github.delivery': req.headers['x-github-delivery']
         })
 
 
-        beeline.addContext({
-            stage: "validate-signature"
-        })
+        span.setAttribute('stage', "validate-signature")
 
         if (!this.validatePayload(context, req)) {
             context.log.error("Received an invalid request signature, ignoring webhook.")
@@ -63,9 +58,7 @@ class GitHubHandler extends Handler {
 
         context.log("Webhook event passed signature validation.")
 
-        beeline.addContext({
-            stage: "handler-lookup"
-        })
+        span.setAttribute('stage', "handler-lookup")
 
         const handler = this.handlerMap[webhookEvent]
         if (!handler) {
@@ -76,16 +69,14 @@ class GitHubHandler extends Handler {
             return
         }
 
-        beeline.addContext({
-            stage: "handler-run"
-        })
+        span.setAttribute('stage', "handler-run")
 
         context.res = {
             // status: 200, /* Defaults to 200 */
             body: await handler(context, req, req.body)
         }
 
-        beeline.addContext({
+        span.setAttributes({
             "response.body": context.res.body,
             stage: "complete"
         })
@@ -94,40 +85,35 @@ class GitHubHandler extends Handler {
 
     @span('github.validatePayload', { result: '$result' })
     validatePayload(context: Context, req: HttpRequest): boolean {
+        const span = currentSpan()
         context.log("Verifying request payload hash")
 
         const secret = process.env["WEBHOOK_SECRET"] || ""
 
         // If the secret is missing, then don't accept any webhooks
         if (!secret) {
-            trackException(new Error("Received an invalid request signature, ignoring webhook"))
+            span.recordException(new Error("Received an invalid request signature, ignoring webhook"))
             return false
         }
 
-        const expectedSignature = beeline.withSpan({
-            name: "github.generateSignature"
-        }, () => generateSignature(secret, req.rawBody))
+        const expectedSignature = wrap("github.generateSignature", {}, () => generateSignature(secret, req.rawBody))
         const actualSignature = req.headers["x-hub-signature-256"] || "No Signature"
 
-        telemetry.trackTrace({
-            message: `Got payload signature '${actualSignature}', expected '${expectedSignature}' (matches: ${actualSignature === expectedSignature})`,
-            properties: {
+        span.addEvent(
+            `Got payload signature '${actualSignature}', expected '${expectedSignature}' (matches: ${actualSignature === expectedSignature})`,
+            {
                 actualSignature,
                 expectedSignature
             }
-        })
+        )
 
-        beeline.addContext({
+        span.setAttributes({
             expectedSignature,
             actualSignature
         })
 
         if (actualSignature !== expectedSignature) {
-            trackException(new Error("Received an invalid request signature, ignoring webhook"), {
-                expectedSignature,
-                actualSignature
-            })
-
+            span.recordException(new Error("Received an invalid request signature, ignoring webhook"))
             return false
         }
 
@@ -142,22 +128,23 @@ class GitHubHandler extends Handler {
 
     @asyncSpan('github.on.pull_request', { result: '$result' })
     async onPullRequest(context: Context, req: HttpRequest, payload: PullRequestEvent): Promise<string> {
+        const span = currentSpan()
         const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')
 
-        beeline.addContext({
+        span.setAttributes({
             trustedAccounts,
             "pull_request.action": payload.action,
             "pull_request.user": payload.sender.login
         })
 
         if (payload.action !== "opened" || !trustedAccounts.includes(payload.sender.login)) {
-            telemetry.trackEvent({
-                name: "Ignoring Pull Request",
-                properties: {
+            span.addEvent(
+                "Ignoring Pull Request",
+                {
                     action: payload.action,
                     author: payload.sender.login
                 }
-            })
+            )
 
             return `Ignoring pull_request:${payload.action}, not a new PR or not created by a trusted account.`
         }
@@ -165,7 +152,7 @@ class GitHubHandler extends Handler {
         context.log(`Received a dependabot PR for ${payload.repository.full_name}`)
         const accessToken = process.env["GITHUB_ACCESS_TOKEN"] || ""
         if (!accessToken) {
-            trackException(new Error("No GITHUB_ACCESS_TOKEN has been set, cannot modify pull requests."))
+            span.recordException(new Error("No GITHUB_ACCESS_TOKEN has been set, cannot modify pull requests."))
             return `Ignoring pull_request:opened, no GitHub access token has been configured.`
         }
 
@@ -178,7 +165,7 @@ class GitHubHandler extends Handler {
 
             return `Auto-merge could not be enabled for this PR.`
         } catch (error) {
-            trackException(error)
+            span.recordException(error)
             return `Auto-merge could not be enabled for this PR.`
         }
     }

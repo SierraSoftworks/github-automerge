@@ -1,14 +1,14 @@
-import { asyncSpan, span, trackException } from "../utils/span";
+import { asyncSpan, span, currentSpan } from "../utils/span";
 import { Timer } from "../utils/timer"
 import { PullRequest } from "@octokit/webhooks-definitions/schema"
 import { graphql } from "@octokit/graphql"
 import { RequestParameters } from "@octokit/graphql/dist-types/types";
 import { defaultClient as telemetry } from "applicationinsights"
-import beeline = require("honeycomb-beeline");
 
 export class GitHubClient {
     @asyncSpan('github.enableGitHubAutoMerge', { result: '$result' })
     static async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
+        const span = currentSpan()
         try {
             const result = await this.callGraphQL<{
                 enablePullRequestAutoMerge?: {
@@ -47,12 +47,14 @@ export class GitHubClient {
 
             return !!autoMergeResult?.enabledAt
         } catch(err) {
-            trackException(err)
+            span.recordException(err)
+            return false
         }
     }
 
     @asyncSpan('github.enableDependabotAutoMerge', { result: '$result' })
     static async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
+        const span = currentSpan()
         try {
             const result = await this.callGraphQL<{
                 addComment?: {
@@ -83,18 +85,20 @@ export class GitHubClient {
 
             return !!result?.addComment?.subject?.id
         } catch(err) {
-            trackException(err)
+            span.recordException(err)
+            return false
         }
     }
 
     @asyncSpan('github.graphql', { result: '$result' })
     private static async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
+        let span = currentSpan()
         const requestParams = Object.assign({}, payload, { headers: null });
 
-        beeline.addContext({
+        span.setAttributes({
             name: `github.graphql.${operation}`,
             "request.body": request,
-            "request.params": requestParams
+            "request.params": JSON.stringify(requestParams)
         })
 
         const timer = new Timer()
@@ -103,9 +107,7 @@ export class GitHubClient {
             payload
         )
 
-        beeline.addContext({
-            "response.body": result
-        })
+        span.setAttribute("response.body", JSON.stringify(result))
 
         telemetry.trackDependency({
             name: `GitHub GraphQL: ${operation}`,

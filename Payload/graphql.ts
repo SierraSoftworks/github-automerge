@@ -1,5 +1,4 @@
 import { asyncSpan, span, currentSpan } from "../utils/span";
-import { Timer } from "../utils/timer"
 import { PullRequest } from "@octokit/webhooks-definitions/schema"
 import { graphql } from "@octokit/graphql"
 import { RequestParameters } from "@octokit/graphql/dist-types/types";
@@ -100,7 +99,6 @@ export class GitHubClient {
             "request.params": JSON.stringify(requestParams)
         })
 
-        const timer = new Timer()
         const result = await graphql<T>(
             request,
             payload

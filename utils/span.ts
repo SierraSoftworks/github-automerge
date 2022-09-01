@@ -5,7 +5,6 @@ import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-proto'
 import {Attributes, Span, trace, context as otelcontext} from '@opentelemetry/api'
 
-import { Timer } from "../utils/timer"
 import { URL } from "url"
 
 export function telemetrySetup() {

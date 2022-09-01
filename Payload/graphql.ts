@@ -3,7 +3,6 @@ import { Timer } from "../utils/timer"
 import { PullRequest } from "@octokit/webhooks-definitions/schema"
 import { graphql } from "@octokit/graphql"
 import { RequestParameters } from "@octokit/graphql/dist-types/types";
-import { defaultClient as telemetry } from "applicationinsights"
 
 export class GitHubClient {
     @asyncSpan('github.enableGitHubAutoMerge', { result: '$result' })
@@ -108,19 +107,6 @@ export class GitHubClient {
         )
 
         span.setAttribute("response.body", JSON.stringify(result))
-
-        telemetry.trackDependency({
-            name: `GitHub GraphQL: ${operation}`,
-            target: `github+graphql://${operation}`,
-            data: JSON.stringify(requestParams),
-            dependencyTypeName: "GRAPHQL",
-            duration: timer.elapsed,
-            resultCode: 200,
-            success: true,
-            properties: {
-                result: JSON.stringify(result)
-            }
-        })
 
         return result
     }

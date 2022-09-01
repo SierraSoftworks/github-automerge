@@ -14,7 +14,7 @@
     "@octokit/graphql": "^5.0.1",
     "@octokit/webhooks": "^10.1.5",
     "@octokit/webhooks-definitions": "^3.67.0",
-    "@opentelemetry/instrumentation-aws-sdk": "^0.8.1",
+    "@types/aws-sdk": "^2.7.0",
     "@types/jest": "^27.5.0",
     "@types/node": "^18.7.14",
     "jest": "^27.5.1",

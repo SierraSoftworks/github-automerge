@@ -4,6 +4,41 @@ import { graphql } from "@octokit/graphql"
 import { RequestParameters } from "@octokit/graphql/dist-types/types";
 
 export class GitHubClient {
+    @asyncSpan('github.approvePullRequest', { result: '$result' })
+    static async approvePullRequest(accessToken: string, pr: PullRequest): Promise<boolean> {
+        const span = currentSpan()
+        try {
+            const result = await this.callGraphQL<{
+                addPullRequestReview?: {
+                    pullRequestReview?: {
+                        id?: string
+                    }
+                }
+            }>(
+                'addPullRequestReview',
+                `mutation DependabotApprovePR($pullRequest: ID!, $comment: String!) {
+                    addPullRequestReview(input: {
+                      pullRequestId: $pullRequest,
+                      body: $comment,
+                      event: APPROVE,
+                    })
+                  }`,
+                {
+                    pullRequest: pr.node_id,
+                    comment: "Automatically approved for merge pending passing tests (since PR was opened by Dependabot).",
+                    headers: {
+                        authorization: `token ${accessToken}`
+                    }
+                }
+            )
+
+            return !!result?.addPullRequestReview?.pullRequestReview?.id
+        } catch(err) {
+            span.recordException(err)
+            return false
+        }
+    }
+
     @asyncSpan('github.enableGitHubAutoMerge', { result: '$result' })
     static async enableGitHubAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
         const span = currentSpan()

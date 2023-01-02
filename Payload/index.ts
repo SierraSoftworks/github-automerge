@@ -154,6 +154,13 @@ class GitHubHandler extends Handler {
             return `Ignoring pull_request:opened, no GitHub access token has been configured.`
         }
 
+        context.log(`Approving the PR with a note about automated approval for Dependabot PRs`)
+        try {
+            await GitHubClient.approvePullRequest(accessToken, <PullRequest>payload.pull_request)
+        } catch (error) {
+            span.recordException(error)
+        }
+
         context.log(`Enabling GitHub auto-merge behaviour on this PR`)
         try {
             if (await GitHubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))

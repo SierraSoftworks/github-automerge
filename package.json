@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "devDependencies": {
-    "@azure/functions": "^3.5.0",
+    "@azure/functions": "^3.5.1",
     "@octokit/graphql": "^5.0.5",
     "@octokit/webhooks": "^10.7.0",
     "@octokit/webhooks-definitions": "^3.67.0",

@@ -1,5 +1,5 @@
 import { Span } from "@opentelemetry/api"
-import {span, asyncSpan, tracer} from "../../utils/span"
+import {span, asyncSpan, tracer} from "./span"
 
 class MockClass
 {

@@ -1,43 +1,41 @@
 import { asyncSpan, currentSpan, span, wrap } from "../utils/span";
-import { AzureFunction, Context, HttpRequest } from "@azure/functions"
+import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit } from "@azure/functions"
 import { WebhookEventMap, PingEvent, PullRequestEvent, PullRequest } from "@octokit/webhooks-definitions/schema"
 import { generateSignature } from "../utils/github"
 import { Handler } from "../utils/handler";
-import { GitHubClient } from "./graphql";
+import { GitHubClient } from "../utils/graphql";
 
 
-type HandlerMap = { [kind in keyof WebhookEventMap]?: (context: Context, req: HttpRequest, payload: WebhookEventMap[kind]) => Promise<string> }
+type HandlerMap = { [kind in keyof WebhookEventMap]?: (req: HttpRequest, context: InvocationContext, payload: WebhookEventMap[kind]) => Promise<string> }
 
-const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-    return await GitHubHandler.trigger(context, req, GitHubHandler)
-};
-
-class GitHubHandler extends Handler {
+export class GitHubHandler extends Handler {
     handlerMap: HandlerMap = {
         ping: this.onPing,
         pull_request: this.onPullRequest
     }
 
     @asyncSpan('github.handle', { stage: "pre-start" })
-    async handle(context: Context, req: HttpRequest) {
+    async handle(req: HttpRequest, context: InvocationContext): Promise<HttpResponse|HttpResponseInit> {
         const webhookEvent = req.headers["x-github-event"] || 'ping'
 
         const span = currentSpan()
         span.setAttribute('stage', "initialize")
+
+        const body = await req.text()
 
         context.log(`Received GitHub webhook ${webhookEvent} event`)
         span.addEvent(
             "GitHub Webhook Event",
             {
                 headers: JSON.stringify(req.headers),
-                body: req.body
+                body
             }
         )
 
         span.setAttributes({
             "request.host": req.headers['host'],
             "request.headers": JSON.stringify(req.headers),
-            "request.body": req.body,
+            "request.body": body,
             "github.event": webhookEvent,
             'github.delivery': req.headers['x-github-delivery']
         })
@@ -45,13 +43,12 @@ class GitHubHandler extends Handler {
 
         span.setAttribute('stage', "validate-signature")
 
-        if (!this.validatePayload(context, req)) {
-            context.log.error("Received an invalid request signature, ignoring webhook.")
-            context.res = {
+        if (!this.validatePayload(req, context, body)) {
+            context.error("Received an invalid request signature, ignoring webhook.")
+            return {
                 status: 401,
                 body: "Invalid request signature"
             }
-            return
         }
 
         context.log("Webhook event passed signature validation.")
@@ -61,28 +58,28 @@ class GitHubHandler extends Handler {
         const handler = this.handlerMap[webhookEvent]
         if (!handler) {
             context.log(`Got a ${webhookEvent} event, which we do not currently support.`)
-            context.res = {
+            return {
                 body: "Webhook type is not supported.",
             }
-            return
         }
 
         span.setAttribute('stage', "handler-run")
 
-        context.res = {
-            // status: 200, /* Defaults to 200 */
-            body: await handler(context, req, req.body)
-        }
+        const result = await handler(req, context, req.body)
 
         span.setAttributes({
-            "response.body": context.res.body,
+            "response.body": result,
             stage: "complete"
         })
+
+        return {
+            body: result
+        }
     }
 
 
     @span('github.validatePayload', { result: '$result' })
-    validatePayload(context: Context, req: HttpRequest): boolean {
+    validatePayload(req: HttpRequest, context: InvocationContext, body: string): boolean {
         const span = currentSpan()
         context.log("Verifying request payload hash")
 
@@ -94,7 +91,7 @@ class GitHubHandler extends Handler {
             return false
         }
 
-        const expectedSignature = wrap("github.generateSignature", {}, () => generateSignature(secret, req.rawBody))
+        const expectedSignature = wrap("github.generateSignature", {}, () => generateSignature(secret, body))
         const actualSignature = req.headers["x-hub-signature-256"] || "No Signature"
 
         span.addEvent(
@@ -119,13 +116,13 @@ class GitHubHandler extends Handler {
     }
 
     @asyncSpan('github.on.ping', { result: '$result' })
-    async onPing(context: Context, req: HttpRequest, payload: PingEvent): Promise<string> {
+    async onPing(req: HttpRequest, context: InvocationContext, payload: PingEvent): Promise<string> {
         context.log("Got ping request, responding with pong.")
         return "pong"
     }
 
     @asyncSpan('github.on.pull_request', { result: '$result' })
-    async onPullRequest(context: Context, req: HttpRequest, payload: PullRequestEvent): Promise<string> {
+    async onPullRequest(req: HttpRequest, context: InvocationContext, payload: PullRequestEvent): Promise<string> {
         const span = currentSpan()
         const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')
 
@@ -175,6 +172,3 @@ class GitHubHandler extends Handler {
         }
     }
 }
-
-
-export default httpTrigger;

@@ -1,4 +1,4 @@
-import { Context, HttpRequest } from '@azure/functions'
+import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit } from '@azure/functions'
 
 import {NodeSDK} from '@opentelemetry/sdk-node'
 import { Resource } from "@opentelemetry/resources";
@@ -81,7 +81,7 @@ export function asyncSpan(name?: string, other?: Attributes) {
     }
 }
 
-export async function handleHttpRequest(context: Context, req: HttpRequest, handleRequest: (context: Context, req: HttpRequest) => Promise<void>): Promise<void> {
+export async function handleHttpRequest(req: HttpRequest, context: InvocationContext, handleRequest: (req: HttpRequest, context: InvocationContext) => Promise<HttpResponse|HttpResponseInit>): Promise<HttpResponse|HttpResponseInit> {
     const url = new URL(req.url)
 
     return tracer.startActiveSpan(
@@ -101,11 +101,17 @@ export async function handleHttpRequest(context: Context, req: HttpRequest, hand
         },
         async span => {
             try {
-                await handleRequest(context, req)
+                const result = await handleRequest(req, context)
 
-                span.setAttribute('response.status_code', context.res.status || (context.res.body ? 200 : 204))
+                span.setAttribute('response.status_code', result.status || (result.body ? 200 : 204))
+
+                return result
             } catch (err) {
                 span.recordException(err)
+                return {
+                    body: JSON.stringify({ "error": "Internal Server Error", "traceid": span.spanContext().traceId }),
+                    status: 500
+                }
             } finally {
                 span.end()
             }

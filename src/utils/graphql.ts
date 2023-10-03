@@ -1,4 +1,4 @@
-import { asyncSpan, span, currentSpan } from "../utils/span";
+import { asyncSpan, span, currentSpan } from "./span";
 import { PullRequest } from "@octokit/webhooks-definitions/schema"
 import { graphql } from "@octokit/graphql"
 import { RequestParameters } from "@octokit/graphql/dist-types/types";

@@ -1,4 +1,4 @@
-import {generateSignature} from "../../utils/github"
+import {generateSignature} from "./github"
 
 test("GitHub generateSignature", () => {
     const secret = "webhook-secret"

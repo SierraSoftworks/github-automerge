@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es6",
+    "module": "Node16",
+    "target": "ESNext",
+    "moduleResolution": "Node16",
     "outDir": "dist",
     "rootDir": ".",
     "sourceMap": true,
     "strict": false,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "esModuleInterop": true
   }
 }

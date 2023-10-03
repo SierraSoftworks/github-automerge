@@ -9,7 +9,10 @@
     "start": "func start",
     "test": "jest"
   },
-  "main": "dist/src/index.js",
+  "main": "dist/src/index.mjs",
+  "files": [
+    "dist/src/**/*.js"
+  ],
   "devDependencies": {
     "@octokit/graphql": "^7.0.2",
     "@octokit/webhooks": "^12.0.3",

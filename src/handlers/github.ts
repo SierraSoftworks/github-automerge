@@ -1,22 +1,25 @@
 import { asyncSpan, currentSpan, span, wrap } from "../utils/span";
-import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit } from "@azure/functions"
+import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit, HttpMethod } from "@azure/functions"
 import { WebhookEventMap, PingEvent, PullRequestEvent, PullRequest } from "@octokit/webhooks-definitions/schema"
 import { generateSignature } from "../utils/github"
 import { Handler } from "../utils/handler";
 import { GitHubClient } from "../utils/graphql";
+import { jsonHeaders } from "../utils/headers";
 
 
 type HandlerMap = { [kind in keyof WebhookEventMap]?: (req: HttpRequest, context: InvocationContext, payload: WebhookEventMap[kind]) => Promise<string> }
 
 export class GitHubHandler extends Handler {
+    methods?: HttpMethod[] = ["POST"]
+
     handlerMap: HandlerMap = {
         ping: this.onPing,
         pull_request: this.onPullRequest
     }
 
     @asyncSpan('github.handle', { stage: "pre-start" })
-    async handle(req: HttpRequest, context: InvocationContext): Promise<HttpResponse|HttpResponseInit> {
-        const webhookEvent = req.headers["x-github-event"] || 'ping'
+    async handler(req: HttpRequest, context: InvocationContext): Promise<HttpResponse|HttpResponseInit> {
+        const webhookEvent = req.headers.get("x-github-event") || 'ping'
 
         const span = currentSpan()
         span.setAttribute('stage', "initialize")
@@ -27,17 +30,17 @@ export class GitHubHandler extends Handler {
         span.addEvent(
             "GitHub Webhook Event",
             {
-                headers: JSON.stringify(req.headers),
+                headers: jsonHeaders(req),
                 body
             }
         )
 
         span.setAttributes({
-            "request.host": req.headers['host'],
-            "request.headers": JSON.stringify(req.headers),
+            "request.host": req.headers.get('host'),
+            "request.headers": jsonHeaders(req),
             "request.body": body,
             "github.event": webhookEvent,
-            'github.delivery': req.headers['x-github-delivery']
+            'github.delivery': req.headers.get('x-github-delivery')
         })
 
 
@@ -92,7 +95,7 @@ export class GitHubHandler extends Handler {
         }
 
         const expectedSignature = wrap("github.generateSignature", {}, () => generateSignature(secret, body))
-        const actualSignature = req.headers["x-hub-signature-256"] || "No Signature"
+        const actualSignature = req.headers.get("x-hub-signature-256") || "No Signature"
 
         span.addEvent(
             `Got payload signature '${actualSignature}', expected '${expectedSignature}' (matches: ${actualSignature === expectedSignature})`,

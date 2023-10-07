@@ -17,11 +17,11 @@ export class GitHubClient {
             }>(
                 'addPullRequestReview',
                 `mutation DependabotApprovePR($pullRequest: ID!, $comment: String!) {
-                    addPullRequestReview(input: {
+                    addPullRequestReview {
                       pullRequestId: $pullRequest,
                       body: $comment,
                       event: APPROVE,
-                    })
+                    }
                   }`,
                 {
                     pullRequest: pr.node_id,
@@ -98,15 +98,15 @@ export class GitHubClient {
             }>(
                 'addComment',
                 `
-            mutation DependabotMergeComment($pullRequest: ID!, $comment: String!) {
-                addComment(input: {
-                    subjectId: $pullRequest,
-                    body: $comment
-                }) {
-                    subject { id }
+                mutation DependabotMergeComment($pullRequest: ID!, $comment: String!) {
+                    addComment(input: {
+                        subjectId: $pullRequest,
+                        body: $comment
+                    }) {
+                        subject { id }
+                    }
                 }
-            }
-            `,
+                `,
                 {
                     pullRequest: pr.node_id,
                     comment: "@dependabot merge",

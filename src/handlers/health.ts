@@ -6,11 +6,13 @@ import { jsonHeaders } from "../utils/headers";
 export class HealthHandler extends Handler {
     methods?: HttpMethod[] = ["GET"]
 
+    health: "Healthy"|"Unhealthy" = "Healthy"
+
     @asyncSpan('health.handle')
-    async handler(req: HttpRequest, context: InvocationContext) {
+    async handle(req: HttpRequest, context: InvocationContext) {
         return {
             // status: 200, /* Defaults to 200 */
-            body: "Healthy"
+            body: this.health
         }
     }
 }

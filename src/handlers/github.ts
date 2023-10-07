@@ -18,7 +18,7 @@ export class GitHubHandler extends Handler {
     }
 
     @asyncSpan('github.handle', { stage: "pre-start" })
-    async handler(req: HttpRequest, context: InvocationContext): Promise<HttpResponse|HttpResponseInit> {
+    async handle(req: HttpRequest, context: InvocationContext): Promise<HttpResponse|HttpResponseInit> {
         const webhookEvent = req.headers.get("x-github-event") || 'ping'
 
         const span = currentSpan()

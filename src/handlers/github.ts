@@ -5,6 +5,7 @@ import { generateSignature } from "../utils/github"
 import { Handler } from "../utils/handler";
 import { GitHubClient } from "../utils/graphql";
 import { jsonHeaders } from "../utils/headers";
+import { SpanStatusCode } from "@opentelemetry/api";
 
 
 type HandlerMap = { [kind in keyof WebhookEventMap]?: (req: HttpRequest, context: InvocationContext, payload: WebhookEventMap[kind]) => Promise<string> }
@@ -127,23 +128,26 @@ export class GitHubHandler extends Handler {
     @asyncSpan('github.on.pull_request', { result: '$result' })
     async onPullRequest(req: HttpRequest, context: InvocationContext, payload: PullRequestEvent): Promise<string> {
         const span = currentSpan()
+
+        const pull_request_user = (payload.pull_request as any).user?.login || payload.sender?.login || "unknown"
         const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')
 
         span.setAttributes({
             trustedAccounts,
             "pull_request.action": payload.action,
-            "pull_request.user": payload.sender.login
+            "pull_request.user": pull_request_user
         })
 
-        if (payload.action !== "opened" || !trustedAccounts.includes(payload.sender.login)) {
+        if (payload.action !== "opened" || !trustedAccounts.includes(pull_request_user)) {
             span.addEvent(
                 "Ignoring Pull Request",
                 {
                     action: payload.action,
-                    author: payload.sender.login
+                    author: pull_request_user
                 }
             )
 
+            span.setStatus({ code: SpanStatusCode.OK, message: "Not a new PR or not created by a trusted account." })
             return `Ignoring pull_request:${payload.action}, not a new PR or not created by a trusted account.`
         }
 
@@ -151,6 +155,7 @@ export class GitHubHandler extends Handler {
         const accessToken = process.env["GITHUB_ACCESS_TOKEN"] || ""
         if (!accessToken) {
             span.recordException(new Error("No GITHUB_ACCESS_TOKEN has been set, cannot modify pull requests."))
+            span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge enabled for PR." })
             return `Ignoring pull_request:opened, no GitHub access token has been configured.`
         }
 
@@ -164,13 +169,21 @@ export class GitHubHandler extends Handler {
         context.log(`Enabling GitHub auto-merge behaviour on this PR`)
         try {
             if (await GitHubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            {
+                span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge enabled for PR." })
                 return `Auto-merge enabled for PR.`
-            else if (payload.sender.login.startsWith("dependabot") && await GitHubClient.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
-                return "Auto-merge enabled for PR using '@dependabot merge'"
+            }
+            else if (pull_request_user.startsWith("dependabot") && await GitHubClient.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            {
+                span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge enabled for PR using '@dependabot merge'." })
+                return "Auto-merge enabled for PR using '@dependabot merge'."
+            }
 
+            span.setStatus({ code: SpanStatusCode.ERROR, message: "Auto-merge could not be enabled for this PR." })
             return `Auto-merge could not be enabled for this PR.`
         } catch (error) {
             span.recordException(error)
+            span.setStatus({ code: SpanStatusCode.ERROR, message: "Auto-merge could not be enabled for this PR due to an exception." })
             return `Auto-merge could not be enabled for this PR.`
         }
     }

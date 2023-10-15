@@ -129,7 +129,7 @@ export class GitHubHandler extends Handler {
     async onPullRequest(req: HttpRequest, context: InvocationContext, payload: PullRequestEvent): Promise<string> {
         const span = currentSpan()
 
-        const pull_request_user = (payload.pull_request as any).user?.login || payload.sender?.login || "unknown"
+        const pull_request_user = (payload.pull_request as any)?.user?.login || payload.sender?.login || "unknown"
         const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')
 
         span.setAttributes({

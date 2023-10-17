@@ -69,7 +69,7 @@ export class GitHubHandler extends Handler {
 
         span.setAttribute('stage', "handler-run")
 
-        const result = await handler(req, context, req.body)
+        const result = await handler(req, context, JSON.parse(body))
 
         span.setAttributes({
             "response.body": result,
@@ -142,6 +142,7 @@ export class GitHubHandler extends Handler {
             span.addEvent(
                 "Ignoring Pull Request",
                 {
+                    pull_request: JSON.stringify(payload),
                     action: payload.action,
                     author: pull_request_user
                 }

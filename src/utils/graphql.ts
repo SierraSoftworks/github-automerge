@@ -19,7 +19,8 @@ export class GitHubClient {
                 `mutation DependabotApprovePR($pullRequest: ID!, $comment: String!) {
                     addPullRequestReview(input: {
                       pullRequestId: $pullRequest,
-                      body: $comment
+                      body: $comment,
+                      event: APPROVE
                     }) {
                       pullRequestReview {
                         id
@@ -28,7 +29,7 @@ export class GitHubClient {
                   }`,
                 {
                     pullRequest: pr.node_id,
-                    comment: "Automatically approved for merge pending passing tests (since PR was opened by Dependabot).",
+                    comment: "Automatically approved for merge pending passing tests (since PR was opened by @dependabot).",
                     headers: {
                         authorization: `token ${accessToken}`
                     }

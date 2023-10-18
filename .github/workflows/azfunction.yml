@@ -55,6 +55,8 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - uses: azure/login@v1
         with:
@@ -102,6 +104,8 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - uses: azure/login@v1.4.5
         with:

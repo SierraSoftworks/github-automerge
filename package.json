@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run sentry:sourcemaps",
     "watch": "tsc -w",
     "prestart": "npm run build",
     "start": "func start",
-    "test": "jest"
+    "test": "jest",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org sierra-softworks --project github-automerge ./dist && sentry-cli sourcemaps upload --org sierra-softworks --project github-automerge ./dist"
   },
   "main": "dist/src/index.mjs",
   "files": [
@@ -17,6 +18,7 @@
     "@octokit/graphql": "^7.0.2",
     "@octokit/webhooks": "^12.0.3",
     "@octokit/webhooks-definitions": "^3.67.0",
+    "@sentry/cli": "^2.21.2",
     "@types/aws-sdk": "^2.7.0",
     "@types/jest": "^27.5.0",
     "@types/node": "^20.8.6",
@@ -30,6 +32,9 @@
     "@opentelemetry/auto-instrumentations-node": "^0.39.4",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.43.0",
     "@opentelemetry/sdk-node": "^0.44.0",
-    "@opentelemetry/semantic-conventions": "^1.17.1"
+    "@opentelemetry/semantic-conventions": "^1.17.1",
+    "@sentry/node": "^7.74.1",
+    "@sentry/opentelemetry-node": "^7.74.1",
+    "@sentry/profiling-node": "^1.2.1"
   }
 }

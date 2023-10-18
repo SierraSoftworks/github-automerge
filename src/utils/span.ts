@@ -1,11 +1,14 @@
 import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit } from '@azure/functions'
 
-import {NodeSDK} from '@opentelemetry/sdk-node'
+import { NodeSDK } from '@opentelemetry/sdk-node'
 import { Resource } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
-import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-node'
-import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-proto'
-import {Attributes, Span, trace, context as otelcontext} from '@opentelemetry/api'
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
+import { Attributes, Span, trace, context as otelcontext } from '@opentelemetry/api'
+import * as Sentry from "@sentry/node"
+import { ProfilingIntegration } from "@sentry/profiling-node"
+import { SentryPropagator, SentrySpanProcessor } from "@sentry/opentelemetry-node"
 
 import { URL } from "url"
 
@@ -17,9 +20,22 @@ const traceExporter = new OTLPTraceExporter({
     timeoutMillis: 500,
 });
 
+Sentry.init({
+    dsn: "https://60322c82ef1cd41b82648f818a544448@o219072.ingest.sentry.io/4506071564222464",
+    tracesSampleRate: 1.0,
+    profilesSampleRate: 1.0,
+    // set the instrumenter to use OpenTelemetry instead of Sentry
+    instrumenter: "otel",
+    integrations: [
+        new ProfilingIntegration(),
+    ],
+})
+
 const sdk = new NodeSDK({
     traceExporter,
     instrumentations: [getNodeAutoInstrumentations()],
+    spanProcessor: new SentrySpanProcessor(),
+    textMapPropagator: new SentryPropagator(),
     serviceName: "github-automerge",
     autoDetectResources: true,
     resource: new Resource({
@@ -41,6 +57,7 @@ export function wrap<T>(name: string, attributes: Attributes, fn: () => T): T {
             return fn();
         } catch (err) {
             span.recordException(err)
+            Sentry.captureException(err)
         } finally {
             span.end()
         }
@@ -53,6 +70,7 @@ export function wrapAsync<T>(name: string, attributes: Attributes, fn: () => Pro
             return await fn();
         } catch (err) {
             span.recordException(err)
+            Sentry.captureException(err)
         } finally {
             span.end()
         }
@@ -81,7 +99,7 @@ export function asyncSpan(name?: string, other?: Attributes) {
     }
 }
 
-export async function handleHttpRequest(req: HttpRequest, context: InvocationContext, handleRequest: (req: HttpRequest, context: InvocationContext) => Promise<HttpResponse|HttpResponseInit>): Promise<HttpResponse|HttpResponseInit> {
+export async function handleHttpRequest(req: HttpRequest, context: InvocationContext, handleRequest: (req: HttpRequest, context: InvocationContext) => Promise<HttpResponse | HttpResponseInit>): Promise<HttpResponse | HttpResponseInit> {
     const url = new URL(req.url)
 
     return tracer.startActiveSpan(
@@ -108,6 +126,7 @@ export async function handleHttpRequest(req: HttpRequest, context: InvocationCon
                 return result
             } catch (err) {
                 span.recordException(err)
+                Sentry.captureException(err)
                 return {
                     body: JSON.stringify({ "error": "Internal Server Error", "traceid": span.spanContext().traceId }),
                     status: 500

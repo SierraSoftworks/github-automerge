@@ -17,10 +17,13 @@ export class GitHubClient {
             }>(
                 'addPullRequestReview',
                 `mutation DependabotApprovePR($pullRequest: ID!, $comment: String!) {
-                    addPullRequestReview {
+                    addPullRequestReview(input: {
                       pullRequestId: $pullRequest,
-                      body: $comment,
-                      event: APPROVE,
+                      body: $comment
+                    }) {
+                      pullRequestReview {
+                        id
+                      }
                     }
                   }`,
                 {

@@ -127,15 +127,15 @@ export class GitHubClient {
         }
     }
 
-    @asyncSpan('github.graphql', { result: '$result' })
+    @asyncSpan('github.graphql', { result: '$result', "otel.kind": "CLIENT", "rpc.system": "graphql", "rpc.service": "github" })
     private static async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
         let span = currentSpan()
         const requestParams = Object.assign({}, payload, { headers: null });
 
         span.setAttributes({
             name: `github.graphql.${operation}`,
-            "request.body": request,
-            "request.params": JSON.stringify(requestParams)
+            "graphql.document": request,
+            "graphql.params": JSON.stringify(requestParams)
         })
 
         const result = await graphql<T>(

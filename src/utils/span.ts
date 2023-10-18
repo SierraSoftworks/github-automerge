@@ -106,6 +106,7 @@ export async function handleHttpRequest(req: HttpRequest, context: InvocationCon
         `${req.method} ${req.url}`,
         {
             attributes: {
+                "otel.kind": "SERVER",
                 "request.host": url.hostname,
                 "request.scheme": url.protocol,
                 "request.path": url.pathname,

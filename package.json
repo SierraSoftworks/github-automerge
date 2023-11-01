@@ -35,6 +35,6 @@
     "@opentelemetry/semantic-conventions": "^1.17.1",
     "@sentry/node": "^7.74.1",
     "@sentry/opentelemetry-node": "^7.77.0",
-    "@sentry/profiling-node": "^1.2.4"
+    "@sentry/profiling-node": "^1.2.5"
   }
 }

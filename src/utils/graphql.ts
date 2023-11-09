@@ -2,10 +2,11 @@ import { asyncSpan, span, currentSpan } from "./span";
 import { PullRequest } from "@octokit/webhooks-definitions/schema"
 import { graphql } from "@octokit/graphql"
 import { RequestParameters } from "@octokit/graphql/dist-types/types";
+import { FeaturesClient } from "./featureflags";
 
 export class GitHubClient {
     @asyncSpan('github.approvePullRequest', { result: '$result' })
-    static async approvePullRequest(accessToken: string, pr: PullRequest): Promise<boolean> {
+    static async approvePullRequest(accessToken: string, pr: PullRequest, comment: string = "Approved"): Promise<boolean> {
         const span = currentSpan()
         try {
             const result = await this.callGraphQL<{
@@ -29,7 +30,7 @@ export class GitHubClient {
                   }`,
                 {
                     pullRequest: pr.node_id,
-                    comment: "Automatically approved for merge pending passing tests (since PR was opened by @dependabot).",
+                    comment,
                     headers: {
                         authorization: `token ${accessToken}`
                     }

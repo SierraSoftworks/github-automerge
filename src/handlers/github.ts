@@ -6,9 +6,10 @@ import { Handler } from "../utils/handler";
 import { GitHubClient } from "../utils/graphql";
 import { jsonHeaders } from "../utils/headers";
 import { SpanStatusCode } from "@opentelemetry/api";
+import { FeaturesClient } from "../utils/featureflags";
 
 
-type HandlerMap = { [kind in keyof WebhookEventMap]?: (req: HttpRequest, context: InvocationContext, payload: WebhookEventMap[kind]) => Promise<string> }
+type HandlerMap = { [kind in keyof WebhookEventMap]?: (req: HttpRequest, context: InvocationContext, payload: WebhookEventMap[kind], flags: FeaturesClient) => Promise<string> }
 
 export class GitHubHandler extends Handler {
     methods?: HttpMethod[] = ["POST"]
@@ -24,6 +25,9 @@ export class GitHubHandler extends Handler {
 
         const span = currentSpan()
         span.setAttribute('stage', "initialize")
+
+        const flags = new FeaturesClient(context)
+        flags.withContext({ "event_type": webhookEvent })
 
         const body = await req.text()
 
@@ -69,7 +73,7 @@ export class GitHubHandler extends Handler {
 
         span.setAttribute('stage', "handler-run")
 
-        const result = await handler(req, context, JSON.parse(body))
+        const result = await handler(req, context, JSON.parse(body), flags)
 
         span.setAttributes({
             "response.body": result,
@@ -120,13 +124,13 @@ export class GitHubHandler extends Handler {
     }
 
     @asyncSpan('github.on.ping', { result: '$result' })
-    async onPing(req: HttpRequest, context: InvocationContext, payload: PingEvent): Promise<string> {
+    async onPing(req: HttpRequest, context: InvocationContext, payload: PingEvent, flags: FeaturesClient): Promise<string> {
         context.log("Got ping request, responding with pong.")
         return "pong"
     }
 
     @asyncSpan('github.on.pull_request', { result: '$result' })
-    async onPullRequest(req: HttpRequest, context: InvocationContext, payload: PullRequestEvent): Promise<string> {
+    async onPullRequest(req: HttpRequest, context: InvocationContext, payload: PullRequestEvent, flags: FeaturesClient): Promise<string> {
         const span = currentSpan()
 
         const pull_request_user = (payload.pull_request as any)?.user?.login || payload.sender?.login || "unknown"
@@ -137,6 +141,26 @@ export class GitHubHandler extends Handler {
             "pull_request.action": payload.action,
             "pull_request.user": pull_request_user
         })
+
+        flags.withContext({
+            "pull_request_user": pull_request_user,
+            "repository_private": payload.repository.private ? "true" : "false",
+            "repository_owner": payload.repository.owner.login,
+        })
+
+        if (!(await flags.boolean("enabled", true))) {
+            span.addEvent(
+                "Ignoring Pull Request",
+                {
+                    pull_request: JSON.stringify(payload),
+                    action: payload.action,
+                    author: pull_request_user
+                }
+            )
+
+            span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge disabled for PR through feature flag." })
+            return `Ignoring pull_request:${payload.action}, auto-merge disabled for PR through feature flag.`
+        }
 
         if (payload.action !== "opened" || !trustedAccounts.includes(pull_request_user)) {
             span.addEvent(
@@ -160,16 +184,19 @@ export class GitHubHandler extends Handler {
             return `Ignoring pull_request:opened, no GitHub access token has been configured.`
         }
 
-        context.log(`Approving the PR with a note about automated approval for Dependabot PRs`)
-        try {
-            await GitHubClient.approvePullRequest(accessToken, <PullRequest>payload.pull_request)
-        } catch (error) {
-            span.recordException(error)
+        if (await flags.boolean("approve-prs", true)) {
+            context.log(`Approving the PR with a note about automated approval for Dependabot PRs`)
+            try {
+                const approvalMessage = await flags.variantAttachment("approval-message", { "message": "This PR has been automatically approved because it was created by @dependabot." })
+                await GitHubClient.approvePullRequest(accessToken, <PullRequest>payload.pull_request, approvalMessage.message || "Approved")
+            } catch (error) {
+                span.recordException(error)
+            }
         }
 
         context.log(`Enabling GitHub auto-merge behaviour on this PR`)
         try {
-            if (await GitHubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
+            if ((await flags.boolean("github-native-automerge", true)) && await GitHubClient.enableGitHubAutoMerge(accessToken, <PullRequest>payload.pull_request))
             {
                 span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge enabled for PR." })
                 return `Auto-merge enabled for PR.`

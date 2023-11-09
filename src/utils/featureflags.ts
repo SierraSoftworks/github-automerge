@@ -25,7 +25,7 @@ export class FeaturesClient {
     @asyncSpan('features.boolean', { result: '$result' })
     async boolean(name: string, defaultValue: boolean = false): Promise<boolean> {
         const span = currentSpan()
-        const value = await this.evaluate(name, client.evaluation.boolean)
+        const value = await this.evaluate(name, req => client.evaluation.boolean(req))
         
         span.setAttribute("flag.value", value ? value.enabled : defaultValue)
 
@@ -36,7 +36,7 @@ export class FeaturesClient {
     @asyncSpan('features.variant', { result: '$result' })
     async variant(name: string, defaultValue: string): Promise<string> {
         const span = currentSpan()
-        const value = await this.evaluate(name, client.evaluation.variant)
+        const value = await this.evaluate(name, req => client.evaluation.variant(req))
         
         span.setAttribute("flag.value", value ? value.variantKey : defaultValue)
 
@@ -47,7 +47,7 @@ export class FeaturesClient {
     @asyncSpan('features.variantAttachment', { result: '$result' })
     async variantAttachment<T>(name: string, defaultValue: T): Promise<T> {
         const span = currentSpan()
-        const value = await this.evaluate(name, client.evaluation.variant)
+        const value = await this.evaluate(name, req => client.evaluation.variant(req))
 
         span.setAttribute("flag.value", value ? value.variantAttachment : JSON.stringify(defaultValue))
 

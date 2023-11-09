@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       - run: npm test
         
   deploy-staging:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs:
       - test
 
@@ -71,7 +71,7 @@ jobs:
   
   healthcheck-staging:
     needs: deploy-staging
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     
     steps:
       - name: Probe
@@ -83,7 +83,7 @@ jobs:
           follow-redirect: true
 
   deploy-production:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs:
       - healthcheck-staging
 
@@ -120,7 +120,7 @@ jobs:
   
   healthcheck-production:
     needs: deploy-production
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     
     steps:
       - name: Probe

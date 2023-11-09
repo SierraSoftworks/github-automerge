@@ -19,7 +19,11 @@ const traceExporter = new OTLPTraceExporter({
 
 const sdk = new NodeSDK({
     traceExporter,
-    instrumentations: [getNodeAutoInstrumentations()],
+    instrumentations: [getNodeAutoInstrumentations({
+        '@opentelemetry/instrumentation-fs': {
+            enabled: false
+        }
+    })],
     serviceName: "github-automerge",
     autoDetectResources: true,
     resource: new Resource({

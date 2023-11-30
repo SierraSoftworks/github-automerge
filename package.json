@@ -21,7 +21,7 @@
     "@sentry/cli": "^2.22.3",
     "@types/aws-sdk": "^2.7.0",
     "@types/jest": "^27.5.0",
-    "@types/node": "^20.10.0",
+    "@types/node": "^20.10.1",
     "jest": "^27.5.1",
     "ts-jest": "^27.1.4",
     "typescript": "^4.9.5"

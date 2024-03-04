@@ -58,7 +58,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      - uses: azure/login@v1
+      - uses: azure/login@v2
         with:
           tenant-id: a26571f1-22b3-4756-ac7b-39ca684fab48
           subscription-id: 108b3ddb-53fb-4344-80b2-d6c151912be6
@@ -107,7 +107,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      - uses: azure/login@v1.4.5
+      - uses: azure/login@v2
         with:
           tenant-id: a26571f1-22b3-4756-ac7b-39ca684fab48
           subscription-id: 108b3ddb-53fb-4344-80b2-d6c151912be6

@@ -1,8 +1,8 @@
-import { asyncSpan, span, currentSpan } from "./span";
-import { PullRequest } from "@octokit/webhooks-definitions/schema"
+import { asyncSpan, span, currentSpan } from "./span.js";
+import type { PullRequest } from "@octokit/webhooks-definitions/schema.js"
 import { graphql } from "@octokit/graphql"
-import { RequestParameters } from "@octokit/graphql/dist-types/types";
-import { FeaturesClient } from "./featureflags";
+import { RequestParameters } from "@octokit/types";
+import { FeaturesClient } from "./featureflags.js";
 
 export class GitHubClient {
     @asyncSpan('github.approvePullRequest', { result: '$result' })

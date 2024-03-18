@@ -3,7 +3,6 @@ import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit, HttpMet
 import { WebhookEventMap, PingEvent, PullRequestEvent, PullRequest } from "@octokit/webhooks-definitions/schema"
 import { generateSignature } from "../utils/github"
 import { Handler } from "../utils/handler";
-import { GitHubClient } from "../utils/graphql";
 import { jsonHeaders } from "../utils/headers";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { FeaturesClient } from "../utils/featureflags";
@@ -132,6 +131,7 @@ export class GitHubHandler extends Handler {
     @asyncSpan('github.on.pull_request', { result: '$result' })
     async onPullRequest(req: HttpRequest, context: InvocationContext, payload: PullRequestEvent, flags: FeaturesClient): Promise<string> {
         const span = currentSpan()
+        const { GitHubClient } = await import("../utils/graphql.mjs");
 
         const pull_request_user = (payload.pull_request as any)?.user?.login || payload.sender?.login || "unknown"
         const trustedAccounts = (process.env["TRUSTED_ACCOUNTS"] || "dependabot[bot],dependabot-preview[bot]").split(',')

@@ -1,7 +1,7 @@
 import { InvocationContext } from "@azure/functions";
 import { FliptApiClient } from "@flipt-io/flipt";
 import { EvaluationRequest } from "@flipt-io/flipt/api/resources/evaluation";
-import { asyncSpan, currentSpan } from "./span";
+import { asyncSpan, currentSpan } from "./span.js";
 
 const client = new FliptApiClient({
     environment: "https://flipt.internal.sierrasoftworks.com",

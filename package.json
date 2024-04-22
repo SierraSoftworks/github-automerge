@@ -16,7 +16,7 @@
   ],
   "devDependencies": {
     "@octokit/graphql": "^8.1.1",
-    "@octokit/webhooks": "^13.2.3",
+    "@octokit/webhooks": "^13.2.4",
     "@octokit/webhooks-definitions": "^3.67.0",
     "@sentry/cli": "^2.31.0",
     "@types/aws-sdk": "^2.7.0",

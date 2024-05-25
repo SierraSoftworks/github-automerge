@@ -96,3 +96,5 @@ local.settings.json
 act
 # Sentry Config File
 .sentryclirc
+
+.direnv

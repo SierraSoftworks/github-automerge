@@ -4,8 +4,8 @@ import type { EvaluationRequest } from "@flipt-io/flipt/dist/evaluation/models";
 import { asyncSpan, currentSpan } from "./span.js";
 
 const client = new FliptClient({
-  url: "https://flipt.internal.sierrasoftworks.com",
-  authenticationStrategy: new ClientTokenAuthentication(process.env.FLIPT_TOKEN)
+  url: "https://flipt.sierrasoftworks.com",
+  authenticationStrategy: new ClientTokenAuthentication(process.env.FLIPT_TOKEN),
 })
 
 export class FeaturesClient {

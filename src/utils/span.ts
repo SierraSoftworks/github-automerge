@@ -2,7 +2,7 @@ import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit } from '
 
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { Resource } from "@opentelemetry/resources";
-import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
+import { ATTR_CLIENT_ADDRESS, ATTR_HTTP_REQUEST_METHOD, ATTR_SERVICE_NAME, ATTR_URL_FULL, ATTR_URL_PATH, ATTR_URL_QUERY, ATTR_URL_SCHEME, ATTR_USER_AGENT_ORIGINAL } from "@opentelemetry/semantic-conventions";
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
 import { Attributes, Span, trace, context as otelcontext } from '@opentelemetry/api'
@@ -27,7 +27,7 @@ const sdk = new NodeSDK({
     serviceName: "github-automerge",
     autoDetectResources: true,
     resource: new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: "github-automerge",
+        [ATTR_SERVICE_NAME]: "github-automerge",
     }),
 });
 
@@ -93,14 +93,13 @@ export async function handleHttpRequest(req: HttpRequest, context: InvocationCon
         {
             attributes: {
                 "otel.kind": "SERVER",
-                "request.host": url.hostname,
-                "request.scheme": url.protocol,
-                "request.path": url.pathname,
-                "request.method": req.method,
-                "request.query": url.search,
-                "request.url": req.url,
-                "request.client-ip": req.headers['client-ip'],
-                'request.user-agent': req.headers['user-agent'],
+                [ATTR_URL_SCHEME]: url.protocol,
+                [ATTR_URL_PATH]: url.pathname,
+                [ATTR_HTTP_REQUEST_METHOD]: req.method,
+                [ATTR_URL_QUERY]: url.search,
+                [ATTR_URL_FULL]: req.url,
+                [ATTR_CLIENT_ADDRESS]: req.headers['client-ip'],
+                [ATTR_USER_AGENT_ORIGINAL]: req.headers['user-agent'],
                 'az.function': req.headers['x-site-deployment-id'],
             }
         },

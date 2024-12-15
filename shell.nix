@@ -3,7 +3,7 @@ with import <nixpkgs> { };
 mkShell {
   nativeBuildInputs = [
     direnv
-    nodejs
+    nodejs_22
   ];
 
   NIX_ENFORCE_PURITY = true;

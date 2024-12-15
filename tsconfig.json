@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "None",
+    "module": "Node16",
     "target": "ES2022",
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "outDir": "dist",
     "rootDir": ".",
     "sourceMap": true,

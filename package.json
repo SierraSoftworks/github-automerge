@@ -15,7 +15,7 @@
     "dist/src/**/*.js"
   ],
   "devDependencies": {
-    "@octokit/graphql": "^8.1.2",
+    "@octokit/graphql": "^8.2.0",
     "@octokit/webhooks": "^13.5.0",
     "@octokit/webhooks-definitions": "^3.67.0",
     "@sentry/cli": "^2.41.1",

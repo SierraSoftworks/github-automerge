@@ -16,7 +16,7 @@
   ],
   "devDependencies": {
     "@octokit/graphql": "^8.2.2",
-    "@octokit/webhooks": "^13.9.0",
+    "@octokit/webhooks": "^14.0.0",
     "@octokit/webhooks-definitions": "^3.67.0",
     "@sentry/cli": "^2.45.0",
     "@types/jest": "^29.5.14",

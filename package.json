@@ -18,7 +18,7 @@
     "@octokit/graphql": "^9.0.1",
     "@octokit/webhooks": "^14.0.0",
     "@octokit/webhooks-definitions": "^3.67.0",
-    "@sentry/cli": "^2.45.0",
+    "@sentry/cli": "^2.46.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.21",
     "jest": "^29.7.0",

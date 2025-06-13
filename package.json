@@ -21,7 +21,7 @@
     "@sentry/cli": "^2.46.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^24.0.1",
-    "jest": "^29.7.0",
+    "jest": "^30.0.0",
     "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"
   },

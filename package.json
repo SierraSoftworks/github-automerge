@@ -19,7 +19,7 @@
     "@octokit/webhooks": "^14.0.2",
     "@octokit/webhooks-definitions": "^3.67.0",
     "@sentry/cli": "^2.46.0",
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.0.1",
     "jest": "^30.0.0",
     "ts-jest": "^29.4.0",

@@ -5,7 +5,10 @@ import { asyncSpan, currentSpan } from "./span.js";
 
 const client = new FliptClient({
   url: "https://flipt.sierrasoftworks.com",
-  authenticationStrategy: new ClientTokenAuthentication(process.env.FLIPT_TOKEN),
+  authenticationStrategy: process.env.FLIPT_TOKEN ? new ClientTokenAuthentication(process.env.FLIPT_TOKEN) : undefined,
+  headers: {
+    'X-Flipt-Environment': process.env.FLIPT_ENVIRONMENT || 'dev'
+  }
 })
 
 export class FeaturesClient {

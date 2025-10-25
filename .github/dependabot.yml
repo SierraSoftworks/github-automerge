@@ -4,6 +4,11 @@ updates:
     package-ecosystem: npm
     schedule:
       interval: daily
+    groups:
+      opentelemetry:
+        patterns:
+          - opentelemetry*
+          - "@opentelemetry/*"
   - directory: /
     package-ecosystem: github-actions
     schedule:

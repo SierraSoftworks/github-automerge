@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@azure/functions": "^4.9.0",
-    "@flipt-io/flipt": "^1.4.0",
+    "@flipt-io/flipt": "^1.5.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.57.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.57.2",

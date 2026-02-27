@@ -66,8 +66,8 @@ jobs:
 
       - run: sudo npm install -g azure-functions-core-tools@4 --unsafe-perm=true
 
-      - name: func azure functionapp publish github-automerge --slot staging
-        run: func azure functionapp publish github-automerge --slot staging --typescript
+      - name: func azure functionapp publish github-automerge-stage
+        run: func azure functionapp publish github-automerge-stage --typescript
   
   healthcheck-staging:
     needs: deploy-staging
@@ -77,7 +77,7 @@ jobs:
       - name: Probe
         uses: Jtalk/url-health-check-action@v4
         with:
-          url: https://github-automerge-staging.azurewebsites.net/api/health
+          url: https://github-automerge-stage.azurewebsites.net/api/health
           max-attempts: 5
           retry-delay: 10s
           follow-redirect: true
@@ -91,7 +91,7 @@ jobs:
 
     environment:
       name: Production
-      url: https://github-automerge-staging.azurewebsites.net/api/health
+      url: https://github-automerge-stage.azurewebsites.net/api/health
 
     steps:
       - name: Checkout Code
@@ -115,8 +115,8 @@ jobs:
 
       - run: sudo npm install -g azure-functions-core-tools@4 --unsafe-perm=true
 
-      - name: func azure functionapp publish github-automerge
-        run: func azure functionapp publish github-automerge --typescript
+      - name: func azure functionapp publish github-automerge-flex
+        run: func azure functionapp publish github-automerge-flex --typescript
   
   healthcheck-production:
     needs: deploy-production
@@ -126,7 +126,7 @@ jobs:
       - name: Probe
         uses: Jtalk/url-health-check-action@v4
         with:
-          url: https://github-automerge.azurewebsites.net/api/health
+          url: https://github-automerge-flex.azurewebsites.net/api/health
           max-attempts: 5
           retry-delay: 10s
           follow-redirect: true

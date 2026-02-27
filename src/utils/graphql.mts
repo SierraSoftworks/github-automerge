@@ -90,44 +90,6 @@ export class GitHubClient {
         }
     }
 
-    @asyncSpan('github.enableDependabotAutoMerge', { result: '$result' })
-    static async enableDependabotAutoMerge(accessToken: string, pr: PullRequest): Promise<boolean> {
-        const span = currentSpan()
-        try {
-            const result = await this.callGraphQL<{
-                addComment?: {
-                    subject?: {
-                        id?: string
-                    }
-                }
-            }>(
-                'addComment',
-                `
-                mutation DependabotMergeComment($pullRequest: ID!, $comment: String!) {
-                    addComment(input: {
-                        subjectId: $pullRequest,
-                        body: $comment
-                    }) {
-                        subject { id }
-                    }
-                }
-                `,
-                {
-                    pullRequest: pr.node_id,
-                    comment: "@dependabot merge",
-                    headers: {
-                        authorization: `token ${accessToken}`
-                    }
-                }
-            )
-
-            return !!result?.addComment?.subject?.id
-        } catch(err) {
-            span.recordException(err)
-            return false
-        }
-    }
-
     @asyncSpan('github.graphql', { result: '$result', "otel.kind": "CLIENT", "rpc.system": "graphql", "rpc.service": "github" })
     private static async callGraphQL<T>(operation: string, request: string, payload: RequestParameters): Promise<T> {
         let span = currentSpan()

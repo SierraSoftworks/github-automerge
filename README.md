@@ -11,8 +11,7 @@ Action script - not really scalable.
 
 To solve the problem, we've built this Azure Function which can be added as an organization-level
 webhook handler and which will automatically (for trusted accounts) enable GitHub's built-in
-auto merge behaviour, or fall-back on using `@dependabot merge` for repos which don't have that
-enabled.
+auto merge behaviour.
 
 ## Configuration
 When deploying this function, you will need to provide the following configuration options:

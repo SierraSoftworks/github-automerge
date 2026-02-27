@@ -201,10 +201,6 @@ export class GitHubHandler extends Handler {
         span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge enabled for PR." })
         return `Auto-merge enabled for PR.`
       }
-      else if (pull_request_user.startsWith("dependabot") && await GitHubClient.enableDependabotAutoMerge(accessToken, <PullRequest>payload.pull_request)) {
-        span.setStatus({ code: SpanStatusCode.OK, message: "Auto-merge enabled for PR using '@dependabot merge'." })
-        return "Auto-merge enabled for PR using '@dependabot merge'."
-      }
 
       span.setStatus({ code: SpanStatusCode.ERROR, message: "Auto-merge could not be enabled for this PR." })
       return `Auto-merge could not be enabled for this PR.`

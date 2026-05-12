@@ -32,6 +32,6 @@
     "@opentelemetry/auto-instrumentations-node": "^0.75.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.217.0",
     "@opentelemetry/sdk-node": "^0.217.0",
-    "@opentelemetry/semantic-conventions": "^1.40.0"
+    "@opentelemetry/semantic-conventions": "^1.41.1"
   }
 }

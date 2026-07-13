@@ -10,10 +10,7 @@ import { Attributes, Span, trace, context as otelcontext } from '@opentelemetry/
 import { URL } from "url"
 
 const traceExporter = new OTLPTraceExporter({
-    url: "https://refinery.sierrasoftworks.com/v1/traces",
-    headers: {
-        "x-honeycomb-team": process.env.HONEYCOMB_KEY
-    },
+    url: "https://telemetry.sierrasoftworks.com/v1/traces",
     timeoutMillis: 500,
 });
 

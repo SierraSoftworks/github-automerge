@@ -3,6 +3,7 @@ import { InvocationContext, HttpRequest, HttpResponse, HttpResponseInit } from '
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { ATTR_CLIENT_ADDRESS, ATTR_HTTP_REQUEST_METHOD, ATTR_SERVICE_NAME, ATTR_URL_FULL, ATTR_URL_PATH, ATTR_URL_QUERY, ATTR_URL_SCHEME, ATTR_USER_AGENT_ORIGINAL } from "@opentelemetry/semantic-conventions";
+import { ATTR_HOST_NAME } from "@opentelemetry/semantic-conventions/incubating";
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
 import { Attributes, Span, trace, context as otelcontext } from '@opentelemetry/api'
@@ -25,6 +26,7 @@ const sdk = new NodeSDK({
     autoDetectResources: true,
     resource: resourceFromAttributes({
         [ATTR_SERVICE_NAME]: "github-automerge",
+        [ATTR_HOST_NAME]: "github-automerge",
     }),
 });
 

@@ -23,7 +23,7 @@ const sdk = new NodeSDK({
         }
     })],
     serviceName: "github-automerge",
-    autoDetectResources: true,
+    autoDetectResources: false,
     resource: resourceFromAttributes({
         [ATTR_SERVICE_NAME]: "github-automerge",
         [ATTR_HOST_NAME]: "github-automerge",
